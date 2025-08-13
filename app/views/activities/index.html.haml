@@ -4,7 +4,7 @@
   %p 
     %strong Total: #{@activities.count} runs
     | #{@total_distance.round(1)} km
-    | #{format_time(@total_time)}
+    | #{format_total_time(@total_time)}
 
 %table.activities-table
   %thead
@@ -13,7 +13,7 @@
       %th Name
       %th Distance
       %th Duration
-      %th Pace
+      %th Pace (/km)
       %th Elevation
       %th Details
   %tbody
@@ -23,7 +23,7 @@
         %td= truncate(activity.name, length: 30)
         %td= "#{activity.distance_km.round(2)} km"
         %td= format_time(activity.duration)
-        %td= "#{activity.pace_per_km.round(2)} min/km"
+        %td= format_pace(activity.pace_per_km)
         %td= activity.elevation_gain ? "#{activity.elevation_gain.round(0)}m" : "-"
         %td= link_to "View", activity_path(activity)
 
