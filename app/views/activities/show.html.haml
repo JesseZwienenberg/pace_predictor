@@ -1,0 +1,59 @@
+%h1= @activity.name
+
+.activity-overview
+  .stats-grid
+    .stat
+      %strong Date:
+      = @activity.start_date.strftime("%B %d, %Y")
+    .stat
+      %strong Distance:
+      = "#{@activity.distance_km.round(2)} km"
+    .stat
+      %strong Duration:
+      = format_time(@activity.duration)
+    .stat
+      %strong Pace:
+      = "#{@activity.pace_per_km.round(2)} min/km"
+    .stat
+      %strong Elevation:
+      = @activity.elevation_gain ? "#{@activity.elevation_gain.round(0)}m" : "-"
+    .stat
+      %strong Heart Rate:
+      = @activity.average_heartrate ? "#{@activity.average_heartrate} bpm" : "-"
+
+- if @activity.splits.any?
+  %h2 Kilometer Splits
+  %table.splits-table
+    %thead
+      %tr
+        %th KM
+        %th Time
+        %th Pace
+        %th Elevation Change
+    %tbody
+      - @activity.splits.order(:split).each do |split|
+        - pace = split.distance > 0 ? (split.elapsed_time / 60.0) / (split.distance / 1000.0) : 0
+        %tr
+          %td= split.split
+          %td= format_time(split.elapsed_time)
+          %td= "#{pace.round(2)} min/km"
+          %td= "#{split.elevation_difference.round(0)}m"
+
+- if @activity.best_efforts.any?
+  %h2 Best Efforts
+  %table.efforts-table
+    %thead
+      %tr
+        %th Distance
+        %th Time
+        %th Pace
+    %tbody
+      - @activity.best_efforts.each do |effort|
+        - pace = effort.distance > 0 ? (effort.elapsed_time / 60.0) / (effort.distance / 1000.0) : 0
+        %tr
+          %td= effort.name
+          %td= format_time(effort.elapsed_time)
+          %td= "#{pace.round(2)} min/km"
+
+.actions
+  = link_to "← Back to Activities", activities_path, class: "btn"
