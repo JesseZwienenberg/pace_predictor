@@ -1,0 +1,21 @@
+%h1 Personal Records
+
+%table.records-table
+  %thead
+    %tr
+      %th Distance
+      %th Time
+      %th Pace (/km)
+      %th Date
+      %th Activity
+  %tbody
+    - @personal_records.each do |distance_name, record|
+      %tr
+        %td= distance_name
+        %td= format_time(record[:time])
+        %td= format_pace(record[:pace])
+        %td= record[:date].strftime("%m/%d/%Y")
+        %td= link_to record[:activity].name, activity_path(record[:activity])
+
+.actions
+  = link_to "← Back to Activities", activities_path, class: "btn"

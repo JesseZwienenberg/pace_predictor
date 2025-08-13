@@ -10,4 +10,5 @@ Rails.application.routes.draw do
   get 'activities', to: 'activities#index'
   get 'activities/:id', to: 'activities#show', as: 'activity'
   post 'activities/import', to: 'activities#import', as: 'activities_import'
+  get "records", to: 'records#index'
 end
