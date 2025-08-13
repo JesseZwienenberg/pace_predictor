@@ -1,5 +1,8 @@
 %h1 Personal Records
 
+%div.chart-container{style: "width: 80%; margin: 20px auto;"}
+  %canvas#recordsChart
+
 %table.records-table
   %thead
     %tr
@@ -19,3 +22,56 @@
 
 .actions
   = link_to "← Back to Activities", activities_path, class: "btn"
+
+:javascript
+  document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('recordsChart').getContext('2d');
+
+    const recordsData = #{@chart_data.to_json.html_safe};
+
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        datasets: [{
+          label: 'Personal Best Pace',
+          data: recordsData,
+          backgroundColor: 'rgba(54, 162, 235, 0.8)',
+          borderColor: 'rgba(54, 162, 235, 1)',
+          pointRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          x: {
+            type: 'linear',
+            title: {
+              display: true,
+              text: 'Distance (km)'
+            },
+            beginAtZero: true
+          },
+          y: {
+            beginAtZero: true,
+            title: {
+              display: true,
+              text: 'Pace (min/km)'
+            }
+          }
+        },
+        plugins: {
+          title: {
+            display: true,
+            text: 'Personal Best Pace by Distance'
+          },
+          tooltip: {
+            callbacks: {
+              title: function(context) {
+                return recordsData[context[0].dataIndex].label;
+              }
+            }
+          }
+        }
+      }
+    });
+  });
