@@ -1,2 +1,33 @@
-%h1 Activities#index
-%p Find me in app/views/activities/index.html.haml
+%h1 Your Running Activities
+
+.stats-summary
+  %p 
+    %strong Total: #{@activities.count} runs
+    | #{@total_distance.round(1)} km
+    | #{format_time(@total_time)}
+
+%table.activities-table
+  %thead
+    %tr
+      %th Date
+      %th Name
+      %th Distance
+      %th Duration
+      %th Pace
+      %th Elevation
+      %th Details
+  %tbody
+    - @activities.each do |activity|
+      %tr
+        %td= activity.start_date.strftime("%m/%d")
+        %td= truncate(activity.name, length: 30)
+        %td= "#{activity.distance_km.round(2)} km"
+        %td= format_time(activity.duration)
+        %td= "#{activity.pace_per_km.round(2)} min/km"
+        %td= activity.elevation_gain ? "#{activity.elevation_gain.round(0)}m" : "-"
+        %td= link_to "View", activity_path(activity)
+
+.actions
+  = link_to "Back to Dashboard", dashboard_path, class: "btn"
+  = form_with url: activities_import_path, method: :post, local: true, style: "display: inline;" do |form|
+    = form.submit "Import More", class: "btn"

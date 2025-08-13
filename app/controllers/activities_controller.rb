@@ -1,6 +1,12 @@
 class ActivitiesController < ApplicationController
   def index
     @activities = Activity.includes(:splits, :best_efforts).order(start_date: :desc)
+    @total_distance = @activities.sum(:distance) / 1000.0
+    @total_time = @activities.sum(:duration)
+  end
+
+  def show
+    @activity = Activity.find(params[:id])
   end
 
   def import
