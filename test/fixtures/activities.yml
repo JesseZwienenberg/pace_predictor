@@ -1,0 +1,21 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  strava_id: 1
+  name: MyString
+  distance: 1.5
+  duration: 1
+  pace: 1.5
+  start_date: 2025-08-13 11:08:25
+  average_heartrate: 1
+  elevation_gain: 1.5
+
+two:
+  strava_id: 1
+  name: MyString
+  distance: 1.5
+  duration: 1
+  pace: 1.5
+  start_date: 2025-08-13 11:08:25
+  average_heartrate: 1
+  elevation_gain: 1.5
