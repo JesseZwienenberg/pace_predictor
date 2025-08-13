@@ -1,5 +1,4 @@
 class Activity < ApplicationRecord
-    include TimeFormattable
     has_many :splits, dependent: :destroy
     has_many :best_efforts, dependent: :destroy
 
@@ -10,9 +9,5 @@ class Activity < ApplicationRecord
 
     def distance_km
         distance / 1000.0
-    end
-
-    def duration_formatted
-        time_formatted(duration)
     end
 end
