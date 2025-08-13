@@ -8,5 +8,5 @@ Rails.application.routes.draw do
   # Main app routes
   get 'dashboard', to: 'dashboard#index'
   get 'activities', to: 'activities#index'
-  post 'activities/import', to: 'activities#import'
+  post 'activities/import', to: 'activities#import', as: 'activities_import'
 end

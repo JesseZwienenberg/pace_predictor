@@ -1,0 +1,19 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  activity: one
+  name: MyString
+  elapsed_time: 1
+  moving_time: 1
+  distance: 1.5
+  start_index: 1
+  end_index: 1
+
+two:
+  activity: two
+  name: MyString
+  elapsed_time: 1
+  moving_time: 1
+  distance: 1.5
+  start_index: 1
+  end_index: 1

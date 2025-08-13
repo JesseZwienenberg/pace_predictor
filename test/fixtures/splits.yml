@@ -1,0 +1,17 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  activity: one
+  distance: 1.5
+  elapsed_time: 1
+  elevation_difference: 1.5
+  moving_time: 1
+  split: 1
+
+two:
+  activity: two
+  distance: 1.5
+  elapsed_time: 1
+  elevation_difference: 1.5
+  moving_time: 1
+  split: 1
