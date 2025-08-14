@@ -1,0 +1,55 @@
+/* Insights Page Styles */
+.insights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 25px;
+  margin-bottom: 30px;
+}
+
+.insight-card {
+  background-color: #f8f9fa;
+  padding: 25px;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.insight-card h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #495057;
+  font-size: 1.3em;
+  border-bottom: 1px solid #e9ecef;
+  padding-bottom: 8px;
+}
+
+.insight-card ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 15px 0;
+}
+
+.insight-card li {
+  padding: 8px 0;
+  border-bottom: 1px solid #f1f3f4;
+}
+
+.insight-card li:last-child {
+  border-bottom: none;
+}
+
+.insight-card h4 {
+  margin-top: 20px;
+  margin-bottom: 10px;
+  color: #6c757d;
+  font-size: 1em;
+}
+
+.insight-card p {
+  margin: 10px 0;
+  line-height: 1.5;
+}
+
+.insight-card strong {
+  color: #007bff;
+}

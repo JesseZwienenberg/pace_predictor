@@ -26,12 +26,20 @@
   = link_to "← Back to Activities", activities_path, class: "btn"
 
 :javascript
-  document.addEventListener('DOMContentLoaded', function() {
-    const ctx = document.getElementById('recordsChart').getContext('2d');
+  document.addEventListener('turbo:load', function() {
+    // Only create chart if canvas exists and chart hasn't been created yet
+    const canvas = document.getElementById('recordsChart');
+    if (!canvas) return;
 
+    // Destroy existing chart if it exists to prevent duplicates
+    if (canvas.chart) {
+      canvas.chart.destroy();
+    }
+
+    const ctx = canvas.getContext('2d');
     const recordsData = #{@chart_data.to_json.html_safe};
 
-    new Chart(ctx, {
+    canvas.chart = new Chart(ctx, {
       type: 'line',
       data: {
         datasets: [{

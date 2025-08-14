@@ -5,8 +5,8 @@ class ActivitiesController < ApplicationController
     # Apply filters based on parameters
     @activities = apply_filters(@activities)
     
-    @total_distance = Activity.sum(:distance) / 1000.0  # Keep totals unfiltered
-    @total_time = Activity.sum(:duration)               # Keep totals unfiltered
+    @total_distance = apply_filters(Activity).sum(:distance) / 1000.0
+    @total_time = apply_filters(Activity).sum(:duration)
     @filter_description = build_filter_description
   end
 

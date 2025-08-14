@@ -2,28 +2,29 @@
 <html>
   <head>
     <title><%= content_for(:title) || "Running Experts" %></title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
-
+    
+    <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
     <%= yield :head %>
-
-    <%# Enable PWA manifest for installable apps (make sure to enable in config/routes.rb too!) %>
-    <%#= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
-
-    <link rel="icon" href="/icon.png" type="image/png">
-    <link rel="icon" href="/icon.svg" type="image/svg+xml">
-    <link rel="apple-touch-icon" href="/icon.png">
-
-    <%# Includes all stylesheet files in app/assets/stylesheets %>
-    <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </head>
 
   <body>
-    <%= yield %>
+    <div class="header">
+      <h1>Running Experts</h1>
+      <nav class="nav">
+        <%= link_to "Dashboard", dashboard_path %>
+        <%= link_to "Activities", activities_path %>
+        <%= link_to "Records", records_path %>
+        <%= link_to "Insights", insights_path %>
+      </nav>
+    </div>
+    
+    <div class="content">
+      <%= yield %>
+    </div>
   </body>
 </html>

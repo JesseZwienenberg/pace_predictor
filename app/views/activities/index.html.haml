@@ -1,4 +1,6 @@
 - content_for(:title, "Activities - Running Experts")
+- content_for :head do
+  = stylesheet_link_tag 'activities', 'data-turbo-track': 'reload'
 
 %h1 Your Running Activities
 
@@ -11,8 +13,8 @@
 .stats-summary
   %p
     %strong Total: #{@activities.count} runs
-    | #{(@activities.sum(:distance) / 1000.0).round(1)} km
-    | #{format_total_time(@activities.sum(:duration))}
+    | #{@total_distance.round(1)} km
+    | #{format_total_time(@total_time)}
 
 %table.activities-table
   %thead
@@ -34,8 +36,3 @@
         %td= format_pace(activity.pace_per_km)
         %td= activity.elevation_gain ? "#{activity.elevation_gain.round(0)}m" : "-"
         %td= link_to "View", activity_path(activity)
-
-.actions
-  = link_to "Back to Dashboard", dashboard_path, class: "btn"
-  = form_with url: activities_import_path, method: :post, local: true, style: "display: inline;" do |form|
-    = form.submit "Import More", class: "btn"

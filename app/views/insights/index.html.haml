@@ -1,4 +1,6 @@
 - content_for(:title, "Running Insights - Running Experts")
+- content_for :head do
+  = stylesheet_link_tag 'insights', 'data-turbo-track': 'reload'
 
 %h1 Running Insights
 %p Discover patterns in your running data
