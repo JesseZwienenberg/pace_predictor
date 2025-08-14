@@ -192,15 +192,15 @@ class InsightsController < ApplicationController
 
   def interpret_pace_trend(slope)
     if slope > 0.1
-      "You tend to start too fast and slow down significantly (positive split)"
+      "You tend to start too fast and slow down significantly"
     elsif slope > 0.02
-      "You tend to slow down slightly during runs (slight positive split)"
+      "You tend to slow down slightly during runs"
     elsif slope > -0.02
       "You maintain very consistent pace throughout runs"
     elsif slope > -0.1
-      "You tend to speed up slightly during runs (slight negative split)"
+      "You tend to speed up slightly during runs"
     else
-      "You tend to start conservatively and finish strong (negative split)"
+      "You tend to start conservatively and finish strong"
     end
   end
 end
