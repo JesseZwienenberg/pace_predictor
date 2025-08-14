@@ -1,15 +1,39 @@
-%h1 PacePredictor
+- content_for(:title, "Running Experts")
+
+%h1 Running Experts
 %p My running analytics
 
-- if session[:strava_access_token]
-    %h2 Connected to Strava!
+.dashboard-stats
+  %h2 Your Running Summary
 
-    = form_with url: activities_import_path, method: :post, local: true do |form|
+  - if @activities.any?
+    .stats-grid
+      .stat-card
+        %h3= @activities.count
+        %p Total Runs
+      .stat-card
+        %h3= "#{@total_distance.round(1)} km"
+        %p Total Distance
+      .stat-card
+        %h3= format_total_time(@total_time)
+        %p Total Time
+      .stat-card
+        %h3= "#{format_pace(@avg_pace)} /km"
+        %p Average Pace
+  - else
+    %p No running data yet. Import some activities to see your stats!
+
+.dashboard-actions
+  %h2 Actions
+
+  = link_to "View Activities", activities_path, class: "btn"
+  = link_to "View Records", records_path, class: "btn", data: { turbo: false }
+
+  .strava-section
+    - if session[:strava_access_token]
+      %p ✅ Connected to Strava
+      = form_with url: activities_import_path, method: :post, local: true do |form|
         = form.submit "Import Activities", class: "btn"
-
-- else
-    %h2 Connect to Strava to get started
-    = link_to "Connect with Strava", strava_login_path, class: "btn"
-
-= link_to "View Activities", activities_path, class: "btn"
-= link_to "View Records", records_path, class: "btn", data: { turbo: false }  # Chart javascript won't work with Turbo
+    - else
+      %p Connect to Strava to import new activities
+      = link_to "Connect with Strava", strava_login_path, class: "btn", data: { turbo: false }

@@ -1,7 +1,9 @@
+- content_for(:title, "Activities - Running Experts")
+
 %h1 Your Running Activities
 
 .stats-summary
-  %p 
+  %p
     %strong Total: #{@activities.count} runs
     | #{@total_distance.round(1)} km
     | #{format_total_time(@total_time)}
