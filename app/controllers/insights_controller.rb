@@ -133,14 +133,16 @@ class InsightsController < ApplicationController
     
     return "Not enough split data available" if splits_data.size < 2
     
-    pace_changes = []
-    splits_data.sort.each_cons(2) do |(km1, pace1), (km2, pace2)|
-      pace_changes << (pace2 - pace1)
-    end
+    sorted_splits = splits_data.sort.to_h
+    first_km_pace = sorted_splits.values.first
+    last_km_pace = sorted_splits.values.last
+    km_count = sorted_splits.size
+    
+    average_pace_change_per_km = (last_km_pace - first_km_pace) / (km_count - 1)
     
     { 
-      average_pace_change_per_km: pace_changes.sum / pace_changes.size,
-      splits_data: splits_data.sort.to_h,
+      average_pace_change_per_km: average_pace_change_per_km,
+      splits_data: sorted_splits,
       analysis_type: "distance_vs_pace"
     }
   end
