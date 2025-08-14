@@ -1,8 +1,13 @@
 class ActivitiesController < ApplicationController
   def index
     @activities = Activity.includes(:splits, :best_efforts).order(start_date: :desc)
-    @total_distance = Activity.sum(:distance) / 1000.0
-    @total_time = Activity.sum(:duration)
+    
+    # Apply filters based on parameters
+    @activities = apply_filters(@activities)
+    
+    @total_distance = Activity.sum(:distance) / 1000.0  # Keep totals unfiltered
+    @total_time = Activity.sum(:duration)               # Keep totals unfiltered
+    @filter_description = build_filter_description
   end
 
   def show
@@ -48,9 +53,9 @@ class ActivitiesController < ApplicationController
     )
     
     return unless detailed_response.success?
-    
+
     data = detailed_response
-    
+
     # Create or update activity
     activity = Activity.find_or_create_by(strava_id: strava_id) do |a|
       a.name = data['name']
@@ -64,7 +69,7 @@ class ActivitiesController < ApplicationController
       a.elapsed_time = data['elapsed_time']
       a.activity_type = data['type']
     end
-    
+
     # Import splits
     if data['splits_metric']&.any?
       activity.splits.destroy_all  # Clear existing splits
@@ -78,7 +83,7 @@ class ActivitiesController < ApplicationController
         )
       end
     end
-    
+
     # Import best efforts
     if data['best_efforts']&.any?
       activity.best_efforts.destroy_all  # Clear existing best efforts
@@ -93,5 +98,65 @@ class ActivitiesController < ApplicationController
         )
       end
     end
+  end
+
+  private
+
+  def apply_filters(activities)
+    if params[:day_of_week].present?
+      day_name = params[:day_of_week].capitalize
+      dow_number = Date::DAYNAMES.index(day_name)
+      activities = activities.where("EXTRACT(dow FROM start_date) = ?", dow_number) if dow_number
+    end
+    
+    if params[:time_window].present?
+      hours = time_window_to_hours(params[:time_window])
+      activities = activities.where("EXTRACT(hour FROM start_date) IN (?)", hours) if hours
+    end
+    
+    if params[:weekend] == 'true'
+      activities = activities.where("EXTRACT(dow FROM start_date) IN (0, 6)")
+    elsif params[:weekday] == 'true'
+      activities = activities.where("EXTRACT(dow FROM start_date) BETWEEN 1 AND 5")
+    end
+    
+    if params[:month].present?
+      # Convert "January 2024" format back to filtering
+      begin
+        month_name, year = params[:month].split(' ')
+        month_number = Date::MONTHNAMES.index(month_name)
+        if month_number && year
+          activities = activities.where("EXTRACT(month FROM start_date) = ? AND EXTRACT(year FROM start_date) = ?", month_number, year.to_i)
+        end
+      rescue
+        # If parsing fails, ignore the filter
+      end
+    end
+    
+    activities
+  end
+
+  def time_window_to_hours(window)
+    case window
+    when "00:00-04:00" then [0, 1, 2, 3]
+    when "04:00-08:00" then [4, 5, 6, 7]
+    when "08:00-12:00" then [8, 9, 10, 11]
+    when "12:00-16:00" then [12, 13, 14, 15]
+    when "16:00-20:00" then [16, 17, 18, 19]
+    when "20:00-24:00" then [20, 21, 22, 23]
+    else nil
+    end
+  end
+
+  def build_filter_description
+    filters = []
+    
+    filters << "#{params[:day_of_week].capitalize} runs" if params[:day_of_week].present?
+    filters << "#{params[:time_window]} runs" if params[:time_window].present?
+    filters << "Weekend runs" if params[:weekend] == 'true'
+    filters << "Weekday runs" if params[:weekday] == 'true'
+    filters << "#{params[:month]} runs" if params[:month].present?
+    
+    filters.any? ? "Showing: #{filters.join(', ')}" : nil
   end
 end

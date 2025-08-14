@@ -2,11 +2,17 @@
 
 %h1 Your Running Activities
 
+- if @filter_description
+  .filter-notice
+    %p
+      %strong= @filter_description
+    %p= link_to "← Show all activities", activities_path
+
 .stats-summary
   %p
     %strong Total: #{@activities.count} runs
-    | #{@total_distance.round(1)} km
-    | #{format_total_time(@total_time)}
+    | #{(@activities.sum(:distance) / 1000.0).round(1)} km
+    | #{format_total_time(@activities.sum(:duration))}
 
 %table.activities-table
   %thead
