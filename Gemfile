@@ -18,13 +18,13 @@ gem "stimulus-rails"
 gem "jbuilder"
 
 # Custom
-gem 'multi_json'
-gem 'omniauth'
-gem 'omniauth-strava'
-gem 'omniauth-rails_csrf_protection'
-gem 'httparty'
-gem 'haml-rails'
-gem 'dotenv-rails', groups: [:development, :test]
+gem "multi_json"
+gem "omniauth"
+gem "omniauth-strava"
+gem "omniauth-rails_csrf_protection"
+gem "httparty"
+gem "haml-rails"
+gem "dotenv-rails", groups: [ :development, :test ]
 
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
 # gem "bcrypt", "~> 3.1.7"
