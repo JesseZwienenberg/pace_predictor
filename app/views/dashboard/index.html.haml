@@ -6,8 +6,10 @@
 
     = form_with url: activities_import_path, method: :post, local: true do |form|
         = form.submit "Import Activities", class: "btn"
-    = link_to "View Activities", activities_path, class: "btn"
 
 - else
     %h2 Connect to Strava to get started
     = link_to "Connect with Strava", strava_login_path, class: "btn"
+
+= link_to "View Activities", activities_path, class: "btn"
+= link_to "View Records", records_path, class: "btn", data: { turbo: false }  # Chart javascript won't work with Turbo
