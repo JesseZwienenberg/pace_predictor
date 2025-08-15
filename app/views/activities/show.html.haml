@@ -29,15 +29,18 @@
     %thead
       %tr
         %th KM
-        %th Time
+        -# %th Time
         %th Pace (/km)
         %th Elevation Change
     %tbody
       - @activity.splits.order(:split).each do |split|
         - pace = split.distance > 0 ? (split.elapsed_time / 60.0) / (split.distance / 1000.0) : 0
         %tr
-          %td= split.split
-          %td= format_time(split.elapsed_time)
+          - if split.distance > 990
+            %td= split.split
+          - else
+            %td= "#{sprintf('%.2f', split.split - 1 + split.distance / 1000)}"
+          -# %td= format_time(split.elapsed_time)
           %td= format_pace(pace)
           %td= "#{split.elevation_difference.round(0)}m"
 

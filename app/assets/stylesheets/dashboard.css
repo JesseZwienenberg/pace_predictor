@@ -1,15 +1,13 @@
-/* Dashboard Styles */
-
-/* Dashboard Main Content Layout */
+/* Dashboard 2 column layout */
 .dashboard-main-content {
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  /* ratio columns */
+  grid-template-columns: 1fr 1fr;
   gap: 40px;
   margin-bottom: 40px;
 }
 
 .dashboard-right {
-  /* Strava connection section */
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -30,14 +28,13 @@
 
 .stats-grid {
   display: grid;
+  /* Force 2 columns and rows */
   grid-template-columns: 1fr 1fr;
-  /* Force 2 columns */
   grid-template-rows: 1fr 1fr;
-  /* Force 2 rows */
   gap: 20px;
   margin-bottom: 40px;
+  /* Limit total width */
   max-width: 600px;
-  /* Limit total width so cards aren't too wide */
 }
 
 .stat-card {
@@ -46,7 +43,6 @@
   border-radius: 8px;
   text-align: center;
   min-height: 120px;
-  /* Ensure consistent height */
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -96,6 +92,32 @@
   margin-bottom: 15px;
 }
 
+.pace-converter {
+  margin-bottom: 40px;
+}
+
+.converter-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px;
+  max-width: 400px;
+}
+
+.input-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #495057;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
   .dashboard-main-content {
@@ -104,7 +126,7 @@
   }
 
   .dashboard-right {
+    /* For mobile */
     order: -1;
-    /* Move Strava section to top on mobile */
   }
 }

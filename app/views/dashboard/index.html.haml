@@ -24,6 +24,16 @@
       - else
         %p No running data yet. Import some activities to see your stats!
 
+    %h2 Pace converter between min/km and km/u
+    .pace-converter
+      .converter-inputs
+        .input-group
+          %label{for: "min-km"} Min/km
+          %input{type: "text", id: "min-km", placeholder: "5:30"}
+        .input-group
+          %label{for: "km-h"} Km/h
+          %input{type: "text", id: "km-h", placeholder: "10.5"}
+
   .dashboard-right
     .strava-section
       %h2 Strava Connection
@@ -34,10 +44,34 @@
       - else
         %p Connect to Strava to import new activities
         = link_to "Connect with Strava", strava_login_path, class: "btn", data: { turbo: false }
+    .strava-section
+      %h2 Recent Activities
+      %p Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
 
-.dashboard-actions
-  %h2 Actions
+:javascript
+    document.addEventListener('DOMContentLoaded', function() {
+    const minKmInput = document.getElementById('min-km');
+    const kmHInput = document.getElementById('km-h');
 
-  = link_to "View Activities", activities_path, class: "btn"
-  = link_to "View Records", records_path, class: "btn", data: { turbo: false }
-  = link_to "View Insights", insights_path, class: "btn"
+    minKmInput.addEventListener('input', function() {
+      const pace = this.value.trim();
+      if (pace && pace.includes(':')) {
+        const [min, sec] = pace.split(':').map(Number);
+        if (!isNaN(min) && !isNaN(sec)) {
+          const totalMinutes = min + (sec / 60);
+          const kmh = (60 / totalMinutes).toFixed(1);
+          kmHInput.value = kmh;
+        }
+      }
+    });
+
+    kmHInput.addEventListener('input', function() {
+      const speed = parseFloat(this.value);
+      if (!isNaN(speed) && speed > 0) {
+        const totalMinutes = 60 / speed;
+        const min = Math.floor(totalMinutes);
+        const sec = Math.round((totalMinutes - min) * 60);
+        minKmInput.value = `${min}:${sec.toString().padStart(2, '0')}`;
+      }
+    });
+  });
