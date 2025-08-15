@@ -11,6 +11,7 @@
       %th Distance
       %th Time
       %th Pace (/km)
+      %th Pace (km/h)
       %th Date
       %th Activity
   %tbody
@@ -19,6 +20,7 @@
         %td= distance_name
         %td= format_time(record[:time])
         %td= format_pace(record[:pace])
+        %td= "#{grey_decimals(pace_to_kmph(record[:pace]))}"
         %td= record[:date].strftime("%m/%d/%Y")
         %td= link_to record[:activity].name, activity_path(record[:activity])
 
@@ -63,10 +65,18 @@
             beginAtZero: true
           },
           y: {
+            type: 'linear',
             beginAtZero: true,
             title: {
               display: true,
               text: 'Pace (min/km)'
+            },
+            ticks: {
+              callback: function(value) {
+                const minutes = Math.floor(value);
+                const seconds = Math.floor((value % 1) * 60);
+                return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+              }
             }
           }
         },
@@ -79,6 +89,11 @@
             callbacks: {
               title: function(context) {
                 return recordsData[context[0].dataIndex].label;
+              },
+              label: function(context) {
+                const minutes = Math.floor(context.parsed.y);
+                const seconds = Math.floor((context.parsed.y % 1) * 60);
+                return `Pace: ${minutes}:${seconds.toString().padStart(2, '0')}`;
               }
             }
           }

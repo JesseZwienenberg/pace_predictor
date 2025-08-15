@@ -90,6 +90,12 @@
   margin-bottom: 15px;
 }
 
+.connected_to_strava {
+  color: green;
+  font-weight: bold;
+  margin-bottom: 15px;
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
   .dashboard-main-content {

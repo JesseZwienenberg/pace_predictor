@@ -10,7 +10,7 @@
       - if @activities.any?
         .stats-grid
           .stat-card
-            %h3= @activities.count
+            %h3= @total_runs
             %p Total Runs
           .stat-card
             %h3= "#{@total_distance.round(1)} km"
@@ -28,7 +28,7 @@
     .strava-section
       %h2 Strava Connection
       - if session[:strava_access_token]
-        %p ✅ Connected to Strava
+        %p.connected_to_strava Connected to Strava!
         = form_with url: activities_import_path, method: :post, local: true do |form|
           = form.submit "Import Activities", class: "btn"
       - else
