@@ -13,7 +13,6 @@ class InsightsController < ApplicationController
 
   def calculate_best_day_of_week
     pace_and_count = Activity.group("EXTRACT(dow FROM start_date)")
-                            .group("EXTRACT(dow FROM start_date)")
                             .select("EXTRACT(dow FROM start_date) as dow, 
                                     AVG(duration::float / (distance / 1000.0) / 60.0) as avg_pace,
                                     COUNT(*) as run_count")
@@ -49,7 +48,7 @@ class InsightsController < ApplicationController
     results = {}
     
     time_windows.each do |window_name, hours|
-      activities = Activity.where("EXTRACT(hour FROM start_date) IN (?)", hours)
+      activities = Activity.where("EXTRACT(hour FROM (start_date AT TIME ZONE 'UTC' AT TIME ZONE 'Europe/Amsterdam')) IN (?)", hours)
       count = activities.count
       
       if count > 0
