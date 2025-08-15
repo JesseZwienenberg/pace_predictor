@@ -45,4 +45,15 @@ module ApplicationHelper
     result.html_safe
 
   end
+
+  def sortable_link(column, title)
+    direction = (params[:sort] == column && params[:direction] == 'asc') ? 'desc' : 'asc'
+    arrow = ''
+    
+    if params[:sort] == column
+      arrow = params[:direction] == 'asc' ? ' ↑' : ' ↓'
+    end
+    
+    link_to "#{title}#{arrow}", request.params.merge(sort: column, direction: direction)
+  end
 end

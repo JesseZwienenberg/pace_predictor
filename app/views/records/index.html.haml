@@ -21,7 +21,7 @@
         %td= format_time(record[:time])
         %td= format_pace(record[:pace])
         %td= "#{grey_decimals(pace_to_kmph(record[:pace]))}"
-        %td= record[:date].strftime("%m/%d/%Y")
+        %td= record[:date].strftime("%d/%m/%Y")
         %td= link_to record[:activity].name, activity_path(record[:activity])
 
 .actions

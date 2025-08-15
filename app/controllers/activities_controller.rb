@@ -1,6 +1,19 @@
 class ActivitiesController < ApplicationController
   def index
-    @activities = Activity.includes(:splits, :best_efforts).order(start_date: :desc)
+    sort_column = params[:sort] || 'start_date'
+    sort_direction = params[:direction] || 'desc'
+    sortable_columns = {
+      'date' => 'start_date',
+      'name' => 'name',
+      'distance' => 'distance',
+      'duration' => 'duration',
+      'pace_per_km' => 'average_speed',
+      'pace_kmph' => 'average_speed',
+      'elevation' => 'elevation_gain'
+    }
+  
+  column = sortable_columns[sort_column] || 'start_date'
+    @activities = Activity.includes(:splits, :best_efforts).order("#{column} #{sort_direction}")
     
     # Apply filters based on parameters
     @activities = apply_filters(@activities)
