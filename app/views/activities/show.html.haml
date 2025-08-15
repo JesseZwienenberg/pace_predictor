@@ -30,7 +30,7 @@
       %tr
         %th KM
         -# %th Time
-        %th Pace (/km)
+        %th Pace (min/km)
         %th Elevation Change
     %tbody
       - @activity.splits.order(:split).each do |split|
@@ -51,7 +51,7 @@
       %tr
         %th Distance
         %th Time
-        %th Pace (/km)
+        %th Pace (min/km)
     %tbody
       - @activity.best_efforts.each do |effort|
         - pace = effort.distance > 0 ? (effort.elapsed_time / 60.0) / (effort.distance / 1000.0) : 0

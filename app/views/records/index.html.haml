@@ -10,7 +10,7 @@
     %tr
       %th Distance
       %th Time
-      %th Pace (/km)
+      %th Pace (min/km)
       %th Pace (km/h)
       %th Date
       %th Activity
@@ -23,8 +23,5 @@
         %td= "#{grey_decimals(pace_to_kmph(record[:pace]))}"
         %td= record[:date].strftime("%d/%m/%Y")
         %td= link_to record[:activity].name, activity_path(record[:activity])
-
-.actions
-  = link_to "← Back to Activities", activities_path, class: "btn"
 
 = render 'pace_chart_script', chart_data: @chart_data

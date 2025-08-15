@@ -8,6 +8,7 @@
 }
 
 .dashboard-right {
+  margin-top: 0;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -20,10 +21,6 @@
   color: #495057;
   border-bottom: 1px solid #e9ecef;
   padding-bottom: 10px;
-}
-
-.dashboard-right .strava-section h2 {
-  margin-top: 0;
 }
 
 .stats-grid {
@@ -71,6 +68,7 @@
 
 .strava-section {
   margin-top: 30px;
+  margin-bottom: 10px;
   background-color: #f8f9fa;
   padding: 20px;
   border-radius: 8px;
@@ -115,17 +113,4 @@
   border: 1px solid #ced4da;
   border-radius: 4px;
   font-size: 16px;
-}
-
-/* Responsive design */
-@media (max-width: 768px) {
-  .dashboard-main-content {
-    grid-template-columns: 1fr;
-    gap: 20px;
-  }
-
-  .dashboard-right {
-    /* For mobile */
-    order: -1;
-  }
 }
