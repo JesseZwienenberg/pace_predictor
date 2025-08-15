@@ -48,7 +48,7 @@ module ApplicationHelper
 
   def sortable_link(column, title)
     direction = (params[:sort] == column && params[:direction] == 'asc') ? 'desc' : 'asc'
-    arrow = ''
+    arrow = ' ↕'
     
     if params[:sort] == column
       arrow = params[:direction] == 'asc' ? ' ↑' : ' ↓'

@@ -1,0 +1,196 @@
+:javascript
+  document.addEventListener('turbo:load', function() {
+    const canvas = document.getElementById('recordsChart');
+    if (!canvas) return;
+
+    if (canvas.chart) {
+      canvas.chart.destroy();
+    }
+
+    const ctx = canvas.getContext('2d');
+    const recordsData = #{chart_data.to_json.html_safe};
+
+    let isPaceMode = true;
+
+    function paceToSpeed(paceInMinutesPerKm) {
+      return 60 / paceInMinutesPerKm;
+    }
+
+    function speedToPace(speedInKmh) {
+      return 60 / speedInKmh;
+    }
+
+    function formatPace(value) {
+      const minutes = Math.floor(value);
+      const seconds = Math.floor((value % 1) * 60);
+      return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    function formatSpeed(value) {
+      return value.toFixed(1) + ' km/h';
+    }
+
+    const toggleButtonPlugin = {
+      id: 'toggleButton',
+      afterDraw: function(chart) {
+        const ctx = chart.ctx;
+        const chartArea = chart.chartArea;
+
+        const buttonWidth = 100;
+        const buttonHeight = 30;
+        const buttonX = chartArea.right - buttonWidth - 10;
+        const buttonY = chartArea.bottom - buttonHeight - 10;
+        chart.toggleButton = {
+          x: buttonX,
+          y: buttonY,
+          width: buttonWidth,
+          height: buttonHeight
+        };
+
+        ctx.save();
+        ctx.fillStyle = '#28a745';
+        ctx.fillRect(buttonX, buttonY, buttonWidth, buttonHeight);
+
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(buttonX, buttonY, buttonWidth, buttonHeight);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const buttonText = isPaceMode ? 'min/km' : 'km/h';
+        ctx.fillText(buttonText, buttonX + buttonWidth/2, buttonY + buttonHeight/2);
+
+        ctx.restore();
+      }
+    };
+
+    function updateChartUnits() {
+      const chart = canvas.chart;
+
+      if (isPaceMode) {
+        chart.data.datasets[0].data = recordsData.map(point => ({
+          x: point.x,
+          y: point.originalPace || point.y,
+          label: point.label
+        }));
+        chart.options.scales.y.title.text = 'Pace (min/km)';
+      } else {
+        chart.data.datasets[0].data = recordsData.map(point => {
+          const originalPace = point.originalPace || point.y;
+          return {
+            x: point.x,
+            y: paceToSpeed(originalPace),
+            label: point.label,
+            originalPace: originalPace
+          };
+        });
+        chart.options.scales.y.title.text = 'Speed (km/h)';
+      }
+
+      chart.options.scales.y.ticks.callback = function(value) {
+        return isPaceMode ? formatPace(value) : formatSpeed(value);
+      };
+
+      chart.options.plugins.tooltip.callbacks.label = function(context) {
+        if (isPaceMode) {
+          const minutes = Math.floor(context.parsed.y);
+          const seconds = Math.floor((context.parsed.y % 1) * 60);
+          return `Pace: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+        } else {
+          return `Speed: ${context.parsed.y.toFixed(1)} km/h`;
+        }
+      };
+
+      chart.update();
+    }
+
+    canvas.addEventListener('click', function(event) {
+      const chart = canvas.chart;
+      if (!chart.toggleButton) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const clickX = event.clientX - rect.left;
+      const clickY = event.clientY - rect.top;
+
+      if (clickX >= chart.toggleButton.x &&
+          clickX <= chart.toggleButton.x + chart.toggleButton.width &&
+          clickY >= chart.toggleButton.y &&
+          clickY <= chart.toggleButton.y + chart.toggleButton.height) {
+
+        isPaceMode = !isPaceMode;
+        updateChartUnits();
+      }
+    });
+
+    canvas.chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        datasets: [{
+          label: 'Personal Best Pace',
+          data: recordsData,
+          backgroundColor: 'rgba(9, 149, 79, 0.8)',
+          borderColor: 'rgba(9, 149, 79, 1)',
+          borderWidth: 2,
+          pointRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          x: {
+            type: 'linear',
+            title: {
+              display: true,
+              text: 'Distance (km)'
+            },
+            beginAtZero: true
+          },
+          y: {
+            type: 'linear',
+            beginAtZero: true,
+            title: {
+              display: true,
+              text: 'Pace (min/km)'
+            },
+            grid: {
+              drawBorder: true
+            },
+            ticks: {
+              // Reserve fixed space for labels
+              maxTicksLimit: 8,
+              callback: function(value) {
+                const minutes = Math.floor(value);
+                const seconds = Math.floor((value % 1) * 60);
+                return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+              }
+            },
+            // Set a minimum width for the scale
+            afterFit: function(scale) {
+              scale.width = 80; // Fixed width for y-axis area
+            }
+          }
+        },
+        plugins: {
+          title: {
+            display: true,
+            text: 'Personal Best Pace by Distance'
+          },
+          tooltip: {
+            callbacks: {
+              title: function(context) {
+                return recordsData[context[0].dataIndex].label;
+              },
+              label: function(context) {
+                const minutes = Math.floor(context.parsed.y);
+                const seconds = Math.floor((context.parsed.y % 1) * 60);
+                return `Pace: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+              }
+            }
+          }
+        }
+      },
+      plugins: [toggleButtonPlugin]
+    });
+  });

@@ -6,7 +6,7 @@ body {
   max-width: 1500px;
   margin: 0 auto;
   padding: 20px;
-  background-color: #f8f9fa;
+  background-color: #f7f8f2;
 }
 
 h1 {
@@ -46,7 +46,7 @@ h1 {
 }
 
 .nav a:hover {
-  background-color: #e9ecef;
+  background-color: #d6d6c2;
 }
 
 /* Buttons */
@@ -64,31 +64,7 @@ h1 {
 }
 
 .btn:hover {
-  background-color: #0056b3;
-}
-
-.btn-primary {
-  background-color: #007bff;
-}
-
-.btn-primary:hover {
-  background-color: #0056b3;
-}
-
-.btn-secondary {
-  background-color: #6c757d;
-}
-
-.btn-secondary:hover {
-  background-color: #545b62;
-}
-
-.btn-success {
-  background-color: #28a745;
-}
-
-.btn-success:hover {
-  background-color: #1e7e34;
+  background-color: #067a3e;
 }
 
 /* Content Container */
@@ -135,7 +111,7 @@ table tbody tr:last-child td {
 
 /* Table links */
 table a {
-  color: #007bff;
+  color: #09944e;
   text-decoration: none;
 }
 
