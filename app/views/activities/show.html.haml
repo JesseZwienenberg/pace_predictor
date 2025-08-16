@@ -9,6 +9,12 @@
       %strong Date:
       = @activity.start_date.strftime("%B %d, %Y")
     .stat
+      %strong Start time:
+      = @activity.start_date.strftime("%H:%M")
+    .stat
+      %strong End time:
+      = (@activity.start_date + @activity.elapsed_time.seconds).strftime("%H:%M")
+    .stat
       %strong Distance:
       = "#{@activity.distance_km.round(2)} km"
     .stat
@@ -23,9 +29,6 @@
     .stat
       %strong Heart Rate:
       = @activity.average_heartrate ? "#{@activity.average_heartrate} bpm" : "-"
-    .stat
-      %strong Start time:
-      = @activity.start_date.strftime("%H:%M")
 
 -# Splits
 - if @split_data
