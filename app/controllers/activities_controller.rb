@@ -124,7 +124,7 @@ class ActivitiesController < ApplicationController
     
     if params[:time_window].present?
       hours = time_window_to_hours(params[:time_window])
-      activities = activities.where("EXTRACT(hour FROM start_date) IN (?)", hours) if hours
+      activities = activities.where("EXTRACT(hour FROM (start_date AT TIME ZONE 'UTC' AT TIME ZONE 'Europe/Amsterdam')) IN (?)", hours) if hours
     end
     
     if params[:weekend] == 'true'
