@@ -15,16 +15,18 @@
         is your fastest day with
         %strong= "#{format_pace(fastest_day[1][:pace])} /km"
 
-      %ul
-        - Date::DAYNAMES.each do |day|
-          - if @best_day_of_week[day]
-            - data = @best_day_of_week[day]
-            %li
-              - if day == fastest_day[0]
-                %strong #{day}: #{format_pace(data[:pace])} /km - #{data[:count]} runs (#{data[:percentage].round(1)}%)
-              - else
-                #{day}: #{format_pace(data[:pace])} /km - #{data[:count]} runs (#{data[:percentage].round(1)}%)
-              = link_to "Show", activities_path(day_of_week: day.downcase), style: "margin-left: 10px;"
+      %table.insight-table
+        %tbody
+          -# Rotate the day names to start from Monday
+          - Date::DAYNAMES.rotate(1).each do |day|
+            - if @best_day_of_week[day]
+              - data = @best_day_of_week[day]
+              %tr{ class: (day == fastest_day[0] ? 'fastest-row' : '') }
+                %td.day-name= day
+                %td.pace-value= "#{format_pace(data[:pace])} /km"
+                %td.count-value= "#{data[:count]} runs"
+                %td.percentage-value= "#{data[:percentage].round(1)}%"
+                %td.action-cell= link_to "Show", activities_path(day_of_week: day.downcase), class: "show-link"
     - else
       %p Not enough data
 
@@ -37,16 +39,17 @@
         is your fastest time with
         %strong= "#{format_pace(fastest_time[1][:pace])} /km"
 
-      %ul
-        - ["00:00-04:00", "04:00-08:00", "08:00-12:00", "12:00-16:00", "16:00-20:00", "20:00-24:00"].each do |window|
-          - if @best_time_of_day[window]
-            - data = @best_time_of_day[window]
-            %li
-              - if window == fastest_time[0]
-                %strong #{window}: #{format_pace(data[:pace])} /km - #{data[:count]} runs (#{data[:percentage].round(1)}%)
-              - else
-                #{window}: #{format_pace(data[:pace])} /km - #{data[:count]} runs (#{data[:percentage].round(1)}%)
-              = link_to "Show", activities_path(time_window: window), style: "margin-left: 10px;"
+      %table.insight-table
+        %tbody
+          - ["00:00-04:00", "04:00-08:00", "08:00-12:00", "12:00-16:00", "16:00-20:00", "20:00-24:00"].each do |window|
+            - if @best_time_of_day[window]
+              - data = @best_time_of_day[window]
+              %tr{ class: (window == fastest_time[0] ? 'fastest-row' : '') }
+                %td.day-name= window
+                %td.pace-value= "#{format_pace(data[:pace])} /km"
+                %td.count-value= "#{data[:count]} runs"
+                %td.percentage-value= "#{data[:percentage].round(1)}%"
+                %td.action-cell= link_to "Show", activities_path(time_window: window), class: "show-link"
     - else
       %p Not enough data
 
@@ -67,14 +70,21 @@
           faster on weekends!
         - else
           No difference between weekend and weekday pace!
-      %p
-        Weekend:
-        #{format_pace(weekend_data[:pace])} /km - #{weekend_data[:count]} runs (#{weekend_data[:percentage].round(1)}%)
-        = link_to "Show", activities_path(weekend: true), style: "margin-left: 10px;"
-      %p
-        Weekday:
-        #{format_pace(weekday_data[:pace])} /km - #{weekday_data[:count]} runs (#{weekday_data[:percentage].round(1)}%)
-        = link_to "Show", activities_path(weekday: true), style: "margin-left: 10px;"
+
+      %table.insight-table
+        %tbody
+          %tr{ class: (weekday_data[:pace] < weekend_data[:pace] ? 'fastest-row' : '') }
+            %td.day-name Weekday
+            %td.pace-value= "#{format_pace(weekday_data[:pace])} /km"
+            %td.count-value= "#{weekday_data[:count]} runs"
+            %td.percentage-value= "#{weekday_data[:percentage].round(1)}%"
+            %td.action-cell= link_to "Show", activities_path(weekday: true), class: "show-link"
+          %tr{ class: (weekday_data[:pace] > weekend_data[:pace] ? 'fastest-row' : '') }
+            %td.day-name Weekend
+            %td.pace-value= "#{format_pace(weekend_data[:pace])} /km"
+            %td.count-value= "#{weekend_data[:count]} runs"
+            %td.percentage-value= "#{weekend_data[:percentage].round(1)}%"
+            %td.action-cell= link_to "Show", activities_path(weekend: true), class: "show-link"
     - else
       %p Not enough data
 
@@ -91,15 +101,15 @@
         %strong Most active:
         #{most_active_month[0]} with #{most_active_month[1][:count]} runs
 
-      %h4 Monthly Breakdown:
-      %ul
-        - @monthly_trends.each do |month, data|
-          %li
-            - if month == best_month[0]
-              %strong #{month}: #{format_pace(data[:pace])} /km - #{data[:count]} runs - #{data[:distance]}km
-            - else
-              #{month}: #{format_pace(data[:pace])} /km - #{data[:count]} runs - #{data[:distance]}km
-            = link_to "Show", activities_path(month: month), style: "margin-left: 10px;"
+      %table.insight-table
+        %tbody
+          - @monthly_trends.each do |month, data|
+            %tr{ class: (month == best_month[0] ? 'fastest-row' : '') }
+              %td.day-name= month
+              %td.pace-value= "#{format_pace(data[:pace])} /km"
+              %td.count-value= "#{data[:count]} runs"
+              %td.distance-value= "#{data[:distance]}km"
+              %td.action-cell= link_to "Show", activities_path(month: month), class: "show-link"
     - else
       %p Not enough data
 
@@ -116,10 +126,14 @@
         per kilometer of distance
 
       - if @pace_consistency[:splits_data].any?
-        %h4 Average Pace by Distance:
-        %ul
-          - @pace_consistency[:splits_data].each do |km, pace|
-            %li KM #{km}: #{format_pace(pace)} /km
+        %p
+          %strong Average Pace by Distance:
+        %table.insight-table
+          %tbody
+            - @pace_consistency[:splits_data].each do |km, pace|
+              %tr
+                %td.day-name KM #{km}
+                %td.pace-value= "#{format_pace(pace)} /km"
     - else
       %p= @pace_consistency
 
@@ -129,8 +143,10 @@
       %p
         %strong= @within_run_pace_consistency[:interpretation]
       %p
-        Average pace change per km:
-        %strong= "#{format_pace(@within_run_pace_consistency[:average_pace_trend_per_km].abs)} /km"
+        Average pace change:
+        %strong
+          = "#{format_pace(@within_run_pace_consistency[:average_pace_trend_per_km].abs)}"
+          != "/km<sup>2</sup>"
         - if @within_run_pace_consistency[:average_pace_trend_per_km] > 0
           (getting slower)
         - else

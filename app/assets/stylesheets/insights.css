@@ -53,3 +53,13 @@
 .insight-card strong {
   color: #09944e;
 }
+
+.insight-table .fastest-row {
+  background-color: #d4edda;
+  font-weight: bold;
+  color: #09944e;
+}
+
+.insight-table .fastest-row:hover {
+  background-color: #c3e6cb;
+}
