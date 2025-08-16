@@ -120,12 +120,10 @@ class InsightsController < ApplicationController
   end
 
   def calculate_rest_day_impact
-    # This is more complex - we'll implement it next
     "Coming soon!"
   end
 
   def calculate_pace_consistency
-    # Rename the current method to "Distance vs Pace Analysis"
     splits_data = Split.joins(:activity)
                       .group(:split)
                       .average("splits.elapsed_time::float / (splits.distance / 1000.0) / 60.0")
@@ -147,25 +145,21 @@ class InsightsController < ApplicationController
   end
 
   def calculate_within_run_pace_consistency
-    # New method for actual pace consistency within individual runs
     activities_with_splits = Activity.joins(:splits).includes(:splits).distinct
     
     pace_trends = []
     
     activities_with_splits.each do |activity|
       splits = activity.splits.order(:split)
-      next if splits.size < 3  # Need at least 3 splits for trend analysis
+      next if splits.size < 3
       
-      # Calculate pace for each split
       split_paces = splits.map do |split|
         split.elapsed_time / 60.0 / (split.distance / 1000.0)  # min/km
       end
       
-      # Calculate simple linear trend (slope)
       n = split_paces.size
       x_values = (1..n).to_a  # km 1, 2, 3, etc.
       
-      # Simple linear regression to find slope
       x_avg = x_values.sum.to_f / n
       y_avg = split_paces.sum / n
       

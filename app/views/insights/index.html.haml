@@ -7,7 +7,7 @@
 
 .insights-grid
   .insight-card
-    %h3 📅 Best Day of the Week
+    %h3 Best Day of the Week
     - if @best_day_of_week.any?
       - fastest_day = @best_day_of_week.min_by { |day, data| data[:pace] }
       %p
@@ -29,7 +29,7 @@
       %p Not enough data
 
   .insight-card
-    %h3 🕐 Best Time of Day
+    %h3 Best Time of Day
     - if @best_time_of_day.any?
       - fastest_time = @best_time_of_day.min_by { |window, data| data[:pace] }
       %p
@@ -51,32 +51,35 @@
       %p Not enough data
 
   .insight-card
-    %h3 📊 Weekend vs Weekday
+    %h3 Weekend vs Weekday
     - if @weekend_vs_weekday[:weekend][:pace] && @weekend_vs_weekday[:weekday][:pace]
       - weekend_data = @weekend_vs_weekday[:weekend]
       - weekday_data = @weekend_vs_weekday[:weekday]
       - diff = weekend_data[:pace] - weekday_data[:pace]
-
       %p
-        %strong Weekend:
+        - if diff > 0
+          You run
+          %strong #{format_pace(diff.abs)} /km
+          faster on weekdays!
+        - elsif diff < 0
+          You run
+          %strong #{format_pace(diff.abs)} /km
+          faster on weekends!
+        - else
+          No difference between weekend and weekday pace!
+      %p
+        Weekend:
         #{format_pace(weekend_data[:pace])} /km - #{weekend_data[:count]} runs (#{weekend_data[:percentage].round(1)}%)
         = link_to "Show", activities_path(weekend: true), style: "margin-left: 10px;"
       %p
-        %strong Weekday:
+        Weekday:
         #{format_pace(weekday_data[:pace])} /km - #{weekday_data[:count]} runs (#{weekday_data[:percentage].round(1)}%)
         = link_to "Show", activities_path(weekday: true), style: "margin-left: 10px;"
-      %p
-        - if diff > 0
-          You run #{format_pace(diff.abs)} /km faster on weekdays! 💼
-        - elsif diff < 0
-          You run #{format_pace(diff.abs)} /km faster on weekends! 🏖️
-        - else
-          No difference between weekend and weekday pace!
     - else
       %p Not enough data
 
   .insight-card
-    %h3 📈 Monthly Trends
+    %h3 Monthly Trends
     - if @monthly_trends.any?
       - best_month = @monthly_trends.min_by { |month, data| data[:pace] }
       - most_active_month = @monthly_trends.max_by { |month, data| data[:count] }
@@ -101,11 +104,11 @@
       %p Not enough data
 
   .insight-card
-    %h3 😴 Rest Day Impact
+    %h3 Rest Day Impact
     %p= @rest_day_impact
 
   .insight-card
-    %h3 📏 Distance vs Pace Analysis
+    %h3 Distance vs Pace Analysis
     - if @pace_consistency.is_a?(Hash) && @pace_consistency[:average_pace_change_per_km]
       %p
         On average, pace changes by
@@ -121,7 +124,7 @@
       %p= @pace_consistency
 
   .insight-card
-    %h3 🎯 Within-Run Pace Consistency
+    %h3 Within-Run Pace Consistency
     - if @within_run_pace_consistency.is_a?(Hash)
       %p
         %strong= @within_run_pace_consistency[:interpretation]

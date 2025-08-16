@@ -7,6 +7,7 @@
     .dashboard-stats
       %h2 Your Running Summary
 
+      -# Summary statistics
       - if @activities.any?
         .stats-grid
           .stat-card
@@ -19,11 +20,15 @@
             %h3= format_total_time(@total_time)
             %p Total Time
           .stat-card
-            %h3= "#{format_pace(@avg_pace)} /km"
-            %p Average Pace
+            %h3
+              = "#{format_pace(@avg_pace)} /km"
+            %p
+              Average Pace
+              %span.info-icon{ title: "Interval runs not counted" } ℹ️
       - else
         %p No running data yet. Import some activities to see your stats!
 
+    -# Pace Converter
     %h2 Pace converter between min/km and km/u
     .pace-converter
       .converter-inputs
@@ -35,6 +40,7 @@
           %input{type: "text", id: "km-h", placeholder: "15.0"}
 
   .dashboard-right
+    -# Strava connection
     .strava-section
       %h2 Strava Connection
       - if session[:strava_access_token]
@@ -45,9 +51,11 @@
         %p Connect to Strava to import new activities
         = link_to "Connect with Strava", strava_login_path, class: "btn", data: { turbo: false }
     .strava-section
+      -# Recent activities
       %h2 Recent Activities
       %p Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
 
+-# JavaScript for pace conversion
 :javascript
     document.addEventListener('DOMContentLoaded', function() {
     const minKmInput = document.getElementById('min-km');
@@ -56,7 +64,8 @@
     minKmInput.addEventListener('input', function() {
       const pace = this.value.trim();
       if (pace && pace.includes(':')) {
-        const [min, sec] = pace.split(':').map(Number);
+        const separator = ':';
+        const [min, sec] = pace.split(separator).map(Number);
         if (!isNaN(min) && !isNaN(sec)) {
           const totalMinutes = min + (sec / 60);
           const kmh = (60 / totalMinutes).toFixed(1);

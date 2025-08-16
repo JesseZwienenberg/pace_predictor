@@ -3,6 +3,7 @@
 %h1= @activity.name
 
 .activity-overview
+  -# Activity details overview
   .stats-grid
     .stat
       %strong Date:
@@ -23,6 +24,7 @@
       %strong Heart Rate:
       = @activity.average_heartrate ? "#{@activity.average_heartrate} bpm" : "-"
 
+-# Splits
 - if @activity.splits.any?
   %h2 Kilometer Splits
   %table.splits-table
@@ -44,6 +46,7 @@
           %td= format_pace(pace)
           %td= "#{split.elevation_difference.round(0)}m"
 
+-# Best efforts
 - if @activity.best_efforts.any?
   %h2 Best Efforts
   %table.efforts-table

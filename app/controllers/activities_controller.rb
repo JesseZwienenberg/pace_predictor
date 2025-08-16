@@ -12,7 +12,7 @@ class ActivitiesController < ApplicationController
       'elevation' => 'elevation_gain'
     }
   
-  column = sortable_columns[sort_column] || 'start_date'
+    column = sortable_columns[sort_column] || 'start_date'
     @activities = Activity.includes(:splits, :best_efforts).order("#{column} #{sort_direction}")
     
     # Apply filters based on parameters
@@ -134,15 +134,13 @@ class ActivitiesController < ApplicationController
     end
     
     if params[:month].present?
-      # Convert "January 2024" format back to filtering
       begin
         month_name, year = params[:month].split(' ')
         month_number = Date::MONTHNAMES.index(month_name)
         if month_number && year
           activities = activities.where("EXTRACT(month FROM start_date) = ? AND EXTRACT(year FROM start_date) = ?", month_number, year.to_i)
         end
-      rescue
-        # If parsing fails, ignore the filter
+        rescue
       end
     end
     

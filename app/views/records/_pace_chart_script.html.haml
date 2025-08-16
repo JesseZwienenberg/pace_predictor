@@ -7,7 +7,8 @@
       canvas.chart.destroy();
     }
 
-    const ctx = canvas.getContext('2d');
+    const canvas_context = '2d'; //Stupid editor thinks this does not exist if it is not a separate variable
+    const ctx = canvas.getContext(canvas_context);
     const recordsData = #{chart_data.to_json.html_safe};
 
     let isPaceMode = true;
