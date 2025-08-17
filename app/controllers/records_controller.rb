@@ -47,17 +47,17 @@ class RecordsController < ApplicationController
 
   def distance_to_km(distance_name)
     conversions = {
-      '400m' => 0.4,
-      '1/2 mile' => 0.8,
-      '1K' => 1.0,
-      '1 mile' => 1.6,
-      '2K' => 2.0,
-      '2 mile' => 3.2,
-      '5K' => 5.0,
-      '10K' => 10.0,
-      '15K' => 15.0,
-      'Half Marathon' => 21.1,
-      'Marathon' => 42.2
+    '400m' => 0.4,
+    '1/2 mile' => 0.804672,
+    '1K' => 1.0,
+    '1 mile' => 1.609344,
+    '2K' => 2.0,
+    '2 mile' => 3.218688,
+    '5K' => 5.0,
+    '10K' => 10.0,
+    '15K' => 15.0,
+    'Half Marathon' => 21.0975,
+    'Marathon' => 42.195
     }
     conversions[distance_name] || 0
   end
