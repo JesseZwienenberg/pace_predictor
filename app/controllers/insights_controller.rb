@@ -123,7 +123,46 @@ class InsightsController < ApplicationController
   end
 
   def calculate_rest_day_impact
-    "Coming soon!"
+    results = {}
+    activities = @filtered_activities.order(:start_date).to_a
+
+    (0..5).each do |rest_days|
+      activities_with_x_rest_days = activities.select.with_index do |activity, index|
+        next false if index == 0
+        
+        previous_activity = activities[index - 1]
+        
+        # Convert to dates
+        current_date = activity.start_date.to_date
+        previous_date = previous_activity.start_date.to_date
+        
+        # Calculate calendar days between
+        calendar_days_between = (current_date - previous_date).to_i
+        
+        if rest_days == 5
+          calendar_days_between >= 6
+        else
+          calendar_days_between == rest_days + 1
+        end
+      end
+      
+      avg_pace = if activities_with_x_rest_days.empty?
+                  0
+                else
+                  activities_with_x_rest_days.sum do |activity|
+                    next 0 if activity.duration.nil? || activity.distance.nil? || activity.distance == 0
+                    activity.duration.to_f / (activity.distance / 1000.0) / 60.0
+                  end.to_f / activities_with_x_rest_days.size
+                end
+      
+      key = rest_days == 5 ? "5+" : rest_days
+      
+      results[key] = {
+        count: activities_with_x_rest_days.count,
+        pace: avg_pace
+      }
+    end
+    results
   end
 
   def calculate_pace_consistency

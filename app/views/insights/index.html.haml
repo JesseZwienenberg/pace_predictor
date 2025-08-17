@@ -118,7 +118,16 @@
 
   .insight-card
     %h3 Rest Day Impact
-    %p= @rest_day_impact
+    - if @rest_day_impact.any?
+      %table.insight-table
+        %tbody
+          - @rest_day_impact.each do |rest_days, data|
+            %tr{ class: (data[:pace] == @rest_day_impact.values.map { |d| d[:pace] }.min ? 'fastest-row' : '') }
+              %td.rest-days= "#{rest_days} days"
+              %td.pace-value= "#{format_pace(data[:pace])}"
+              %td.count-value= data[:count]
+    - else
+      %p Not enough data
 
   .insight-card
     %h3 Distance vs Pace Analysis
