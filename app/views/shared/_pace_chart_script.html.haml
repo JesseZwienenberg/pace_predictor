@@ -1,15 +1,16 @@
 :javascript
   document.addEventListener('turbo:load', function() {
-    const canvas = document.getElementById('recordsChart');
+    const canvas = document.getElementById('#{chart_id}');
     if (!canvas) return;
 
     if (canvas.chart) {
       canvas.chart.destroy();
     }
 
-    const canvas_context = '2d'; //Stupid editor thinks this does not exist if it is not a separate variable
+    const canvas_context = '2d';
     const ctx = canvas.getContext(canvas_context);
-    const recordsData = #{chart_data.to_json.html_safe};
+    const datasets = #{datasets.to_json.html_safe};
+    const chartTitle = '#{chart_title}';
 
     let isPaceMode = true;
 
@@ -67,40 +68,76 @@
       }
     };
 
+    // Store original pace values permanently
+    const originalDatasets = datasets.map(dataset => {
+      return {
+        label: dataset.label,
+        data: dataset.data.map(point => ({
+          x: point.x,
+          y: point.y,
+          label: point.label,
+          originalPace: point.y
+        })),
+        backgroundColor: dataset.borderColor || dataset.color, // Use same color as border
+        borderColor: dataset.borderColor || dataset.color,
+        borderWidth: dataset.borderWidth || 2,
+        pointRadius: dataset.pointRadius !== undefined ? dataset.pointRadius : 6,
+        pointHoverRadius: dataset.pointHoverRadius !== undefined ? dataset.pointHoverRadius : 8,
+        showPoints: dataset.showPoints !== undefined ? dataset.showPoints : true, // New option
+        tension: dataset.tension || 0, // Line smoothness
+        hidden: dataset.hidden || false,
+        fill: false // Disable area fill
+      };
+    });
+
+    // Create a deep copy for Chart.js to use
+    const chartDatasets = originalDatasets.map(dataset => ({
+      ...dataset,
+      data: dataset.data.map(point => ({...point})),
+      // Set point radius based on showPoints option
+      pointRadius: dataset.showPoints ? dataset.pointRadius : 0,
+      pointHoverRadius: dataset.showPoints ? dataset.pointHoverRadius : 0,
+      pointHitRadius: dataset.showPoints ? 10 : 0,
+      fill: false // Ensure no area fill
+    }));
+
     function updateChartUnits() {
       const chart = canvas.chart;
 
-      if (isPaceMode) {
-        chart.data.datasets[0].data = recordsData.map(point => ({
-          x: point.x,
-          y: point.originalPace || point.y,
-          label: point.label
-        }));
-        chart.options.scales.y.title.text = 'Pace (min/km)';
-      } else {
-        chart.data.datasets[0].data = recordsData.map(point => {
-          const originalPace = point.originalPace || point.y;
-          return {
+      chart.data.datasets.forEach((dataset, index) => {
+        const originalDataset = originalDatasets[index];
+
+        if (isPaceMode) {
+          dataset.data = originalDataset.data.map(point => ({
             x: point.x,
-            y: paceToSpeed(originalPace),
+            y: point.originalPace,
             label: point.label,
-            originalPace: originalPace
-          };
-        });
-        chart.options.scales.y.title.text = 'Speed (km/h)';
-      }
+            originalPace: point.originalPace
+          }));
+        } else {
+          dataset.data = originalDataset.data.map(point => ({
+            x: point.x,
+            y: paceToSpeed(point.originalPace),
+            label: point.label,
+            originalPace: point.originalPace
+          }));
+        }
+      });
+
+      chart.options.scales.y.title.text = isPaceMode ? 'Pace (min/km)' : 'Speed (km/h)';
 
       chart.options.scales.y.ticks.callback = function(value) {
         return isPaceMode ? formatPace(value) : formatSpeed(value);
       };
 
       chart.options.plugins.tooltip.callbacks.label = function(context) {
+        const datasetLabel = context.dataset.label || '';
         if (isPaceMode) {
           const minutes = Math.floor(context.parsed.y);
           const seconds = Math.floor((context.parsed.y % 1) * 60);
-          return `Pace: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+          return `${datasetLabel}: ${minutes}:${seconds.toString().padStart(2, '0')}`;
         } else {
-          return `Speed: ${context.parsed.y.toFixed(1)} km/h`;
+          return `${datasetLabel}: ${context.parsed.y.toFixed(1)} km/h`;
         }
       };
 
@@ -128,17 +165,14 @@
     canvas.chart = new Chart(ctx, {
       type: 'line',
       data: {
-        datasets: [{
-          label: 'Personal Best Pace',
-          data: recordsData,
-          backgroundColor: 'rgba(9, 149, 79, 0.8)',
-          borderColor: 'rgba(9, 149, 79, 1)',
-          borderWidth: 2,
-          pointRadius: 6
-        }]
+        datasets: chartDatasets
       },
       options: {
         responsive: true,
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
         scales: {
           x: {
             type: 'linear',
@@ -159,7 +193,6 @@
               drawBorder: true
             },
             ticks: {
-              // Reserve fixed space for labels
               maxTicksLimit: 8,
               callback: function(value) {
                 const minutes = Math.floor(value);
@@ -167,26 +200,33 @@
                 return `${minutes}:${seconds.toString().padStart(2, '0')}`;
               }
             },
-            // Set a minimum width for the scale
             afterFit: function(scale) {
-              scale.width = 80; // Fixed width for y-axis area
+              scale.width = 80;
             }
           }
         },
         plugins: {
           title: {
-            display: false,
-            text: 'Personal Best Pace by Distance'
+            display: chartTitle ? true : false,
+            text: chartTitle,
+            font: {size: 30}
+          },
+          legend: {
+            display: datasets.length > 1, // Only show legend if multiple datasets
+            position: 'top'
           },
           tooltip: {
             callbacks: {
               title: function(context) {
-                return recordsData[context[0].dataIndex].label;
+                const dataIndex = context[0].dataIndex;
+                const dataset = originalDatasets[context[0].datasetIndex];
+                return dataset.data[dataIndex].label || `${context[0].parsed.x} km`;
               },
               label: function(context) {
+                const datasetLabel = context.dataset.label || '';
                 const minutes = Math.floor(context.parsed.y);
                 const seconds = Math.floor((context.parsed.y % 1) * 60);
-                return `Pace: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+                return `${datasetLabel}: ${minutes}:${seconds.toString().padStart(2, '0')}`;
               }
             }
           }
