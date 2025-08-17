@@ -1,5 +1,8 @@
 class InsightsController < ApplicationController
   def index
+    @filtered_activities = Activity.where("name NOT ILIKE ? AND name NOT ILIKE ?", "%interval%", "%herstel%")
+    @filtered_splits = Split.where("name NOT ILIKE ? AND name NOT ILIKE ?", "%interval%", "%herstel%")
+
     @best_day_of_week = calculate_best_day_of_week
     @best_time_of_day = calculate_best_time_of_day
     @monthly_trends = calculate_monthly_trends
@@ -12,12 +15,12 @@ class InsightsController < ApplicationController
   private
 
   def calculate_best_day_of_week
-    pace_and_count = Activity.group("EXTRACT(dow FROM start_date)")
+    pace_and_count = @filtered_activities.group("EXTRACT(dow FROM start_date)")
                             .select("EXTRACT(dow FROM start_date) as dow, 
                                     AVG(duration::float / (distance / 1000.0) / 60.0) as avg_pace,
                                     COUNT(*) as run_count")
     
-    total_runs = Activity.count.to_f
+    total_runs = @filtered_activities.count.to_f
     
     # Convert to hash with day names
     results = {}
@@ -44,11 +47,11 @@ class InsightsController < ApplicationController
       "20:00-24:00" => [20, 21, 22, 23]
     }
     
-    total_runs = Activity.count.to_f
+    total_runs = @filtered_activities.count.to_f
     results = {}
     
     time_windows.each do |window_name, hours|
-      activities = Activity.where("EXTRACT(hour FROM (start_date AT TIME ZONE 'UTC' AT TIME ZONE 'Europe/Amsterdam')) IN (?)", hours)
+      activities = @filtered_activities.where("EXTRACT(hour FROM (start_date AT TIME ZONE 'UTC' AT TIME ZONE 'Europe/Amsterdam')) IN (?)", hours)
       count = activities.count
       
       if count > 0
@@ -73,7 +76,7 @@ class InsightsController < ApplicationController
                                   AVG(duration::float / (distance / 1000.0) / 60.0) as avg_pace,
                                   COUNT(*) as run_count,
                                   SUM(distance) / 1000.0 as total_distance"))
-                          .order(Arel.sql("TO_CHAR(start_date, 'YYYY-MM')"))
+                          .order(Arel.sql("TO_CHAR(start_date, 'YYYY-MM') DESC"))
     
     results = {}
     monthly_data.each do |data|
@@ -93,14 +96,14 @@ class InsightsController < ApplicationController
   end
 
   def calculate_weekend_vs_weekday
-    total_runs = Activity.count.to_f
+    total_runs = @filtered_activities.count.to_f
     
-    weekend_activities = Activity.where("EXTRACT(dow FROM start_date) IN (0, 6)")
+    weekend_activities = @filtered_activities.where("EXTRACT(dow FROM start_date) IN (0, 6)")
     weekend_pace = weekend_activities.average("duration::float / (distance / 1000.0) / 60.0")
     weekend_count = weekend_activities.count
     weekend_percentage = (weekend_count / total_runs * 100)
     
-    weekday_activities = Activity.where("EXTRACT(dow FROM start_date) BETWEEN 1 AND 5")
+    weekday_activities = @filtered_activities.where("EXTRACT(dow FROM start_date) BETWEEN 1 AND 5")
     weekday_pace = weekday_activities.average("duration::float / (distance / 1000.0) / 60.0")
     weekday_count = weekday_activities.count
     weekday_percentage = (weekday_count / total_runs * 100)
@@ -124,7 +127,7 @@ class InsightsController < ApplicationController
   end
 
   def calculate_pace_consistency
-    splits_data = Split.joins(:activity)
+    splits_data = @filtered_splits.joins(:activity)
                       .group(:split)
                       .average("splits.elapsed_time::float / (splits.distance / 1000.0) / 60.0")
     
@@ -145,7 +148,7 @@ class InsightsController < ApplicationController
   end
 
   def calculate_within_run_pace_consistency
-    activities_with_splits = Activity.joins(:splits).includes(:splits).distinct.where("name NOT ILIKE ?", "%interval%")
+    activities_with_splits = @filtered_activities.joins(:splits).includes(:splits).distinct
     
     pace_trends = []
     

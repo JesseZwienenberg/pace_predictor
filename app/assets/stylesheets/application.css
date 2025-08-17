@@ -138,3 +138,21 @@ th a:visited {
 .info-icon:hover {
   cursor: pointer;
 }
+
+.logo-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 60px;
+}
+
+.logo {
+  height: 100%;
+  width: auto;
+}
+
+.logo-title h1 {
+  margin: 0;
+  text-align: center;
+  flex: 1;
+}

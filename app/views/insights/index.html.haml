@@ -3,7 +3,6 @@
   = stylesheet_link_tag 'insights', 'data-turbo-track': 'reload'
 
 %h1 Running Insights
-%p Discover patterns in your running data
 
 .insights-grid
   .insight-card
@@ -36,7 +35,7 @@
       - fastest_time = @best_time_of_day.min_by { |window, data| data[:pace] }
       %p
         %strong= fastest_time[0]
-        is your fastest time with
+        is your fastest time window with
         %strong= "#{format_pace(fastest_time[1][:pace])} /km"
 
       %table.insight-table
@@ -93,6 +92,7 @@
     - if @monthly_trends.any?
       - best_month = @monthly_trends.min_by { |month, data| data[:pace] }
       - most_active_month = @monthly_trends.max_by { |month, data| data[:count] }
+      - most_distance_month = @monthly_trends.max_by { |month, data| data[:distance] }
 
       %p
         %strong Best pace:
@@ -100,6 +100,9 @@
       %p
         %strong Most active:
         #{most_active_month[0]} with #{most_active_month[1][:count]} runs
+      %p
+        %strong Most distance:
+        #{most_distance_month[0]} with #{most_distance_month[1][:distance]} km
 
       %table.insight-table
         %tbody

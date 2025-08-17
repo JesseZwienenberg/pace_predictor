@@ -1,12 +1,10 @@
 - content_for(:title, "Running Experts")
 - content_for :head do
   = stylesheet_link_tag 'dashboard', 'data-turbo-track': 'reload'
-
 .dashboard-main-content
   .dashboard-left
     .dashboard-stats
       %h2 Your Running Summary
-
       -# Summary statistics
       - if @activities.any?
         .stats-grid
@@ -24,10 +22,9 @@
               = "#{format_pace(@avg_pace)} /km"
             %p
               Average Pace
-              %span.info-icon{ title: "Interval runs not counted" } ℹ️
+              %span.info-icon{ title: "Interval and recovery runs not counted" } ℹ️
       - else
         %p No running data yet. Import some activities to see your stats!
-
     -# Pace Converter
     %h2 Pace converter between min/km and km/u
     .pace-converter
@@ -38,15 +35,14 @@
         .input-group
           %label{for: "km-h"} Km/h
           %input{type: "text", id: "km-h", placeholder: "15.0"}
-
   .dashboard-right
     -# Strava connection
     .strava-section
       %h2 Strava Connection
       - if session[:strava_access_token]
         %p.connected_to_strava Connected to Strava!
-        = form_with url: activities_import_path, method: :post, local: true do |form|
-          = form.submit "Import Activities", class: "btn"
+        = form_with url: activities_import_path, method: :post, local: true, html: { id: "import-form" } do |form|
+          = form.submit "Import Activities", class: "btn", id: "import-button", data: { disable_with: "Importing..." }
       - else
         %p Connect to Strava to import new activities
         = link_to "Connect with Strava", strava_login_path, class: "btn", data: { turbo: false }
@@ -54,10 +50,10 @@
       -# Recent activities
       %h2 Recent Activities
       %p Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-
--# JavaScript for pace conversion
+-# JavaScript for pace conversion and button disabling
 :javascript
-    document.addEventListener('DOMContentLoaded', function() {
+  document.addEventListener('DOMContentLoaded', function() {
+    // Pace converter functionality
     const minKmInput = document.getElementById('min-km');
     const kmHInput = document.getElementById('km-h');
 
@@ -83,4 +79,30 @@
         minKmInput.value = `${min}:${sec.toString().padStart(2, '0')}`;
       }
     });
+
+    // Import button disabling functionality
+    const importForm = document.getElementById('import-form');
+    const importButton = document.getElementById('import-button');
+
+    if (importForm && importButton) {
+      importForm.addEventListener('submit', function(e) {
+        // Disable the button immediately
+        importButton.disabled = true;
+        importButton.value = 'Importing...';
+        importButton.style.opacity = '0.6';
+        importButton.style.cursor = 'not-allowed';
+
+        // If using Rails UJS, this ensures the form still submits
+        // The form will continue to submit normally
+      });
+
+      // Additional safeguard: prevent clicking while disabled
+      importButton.addEventListener('click', function(e) {
+        if (this.disabled) {
+          e.preventDefault();
+          e.stopPropagation();
+          return false;
+        }
+      });
+    }
   });
