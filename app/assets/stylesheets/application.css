@@ -134,3 +134,7 @@ th a:hover {
 th a:visited {
   color: inherit;
 }
+
+.info-icon:hover {
+  cursor: pointer;
+}
