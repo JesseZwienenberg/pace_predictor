@@ -7,11 +7,26 @@
       canvas.chart.destroy();
     }
 
+    // Load Chart.js zoom plugin if not already loaded
+    if (typeof Chart !== 'undefined' && !Chart.registry.plugins.get('zoom')) {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js';
+      document.head.appendChild(script);
+
+      script.onload = function() {
+        initializeChart();
+      };
+    } else {
+      initializeChart();
+    }
+
+    function initializeChart() {
+
     const canvas_context = '2d';
     const ctx = canvas.getContext(canvas_context);
     const datasets = #{datasets.to_json.html_safe};
     const chartTitle = '#{chart_title}';
-    const xAxisConfig = #{x_axis_config.to_json.html_safe}; // New parameter
+    const xAxisConfig = #{(defined?(x_axis_config) ? x_axis_config : {}).to_json.html_safe}; // Make optional with default
 
     let isPaceMode = true;
 
@@ -186,12 +201,12 @@
       max: maxX, // Set max to the highest x value in the data
       title: {
         display: true,
-        text: xAxisConfig.label || 'Distance (km)' // Default fallback
+        text: (xAxisConfig && xAxisConfig.label) || 'Distance (km)' // Default to Distance (km)
       }
     };
 
     // Add time-specific formatting if x-axis is time-based
-    if (xAxisConfig.type === 'time') {
+    if (xAxisConfig && xAxisConfig.type === 'time') {
       xAxisOptions.ticks = {
         maxTicksLimit: 8,
         callback: function(value) {
@@ -256,10 +271,10 @@
                 // Use custom label if provided, otherwise format based on x-axis type
                 if (point.label) {
                   return point.label;
-                } else if (xAxisConfig.type === 'time') {
+                } else if (xAxisConfig && xAxisConfig.type === 'time') {
                   return formatTime(context[0].parsed.x);
                 } else {
-                  return `${context[0].parsed.x} ${xAxisConfig.unit || 'km'}`;
+                  return `${context[0].parsed.x} ${(xAxisConfig && xAxisConfig.unit) || 'km'}`;
                 }
               },
               label: function(context) {
@@ -269,9 +284,61 @@
                 return `${datasetLabel}: ${minutes}:${seconds.toString().padStart(2, '0')}`;
               }
             }
+          },
+          zoom: {
+            zoom: {
+              wheel: {
+                enabled: true,
+              },
+              pinch: {
+                enabled: true
+              },
+              mode: 'xy',
+              onZoomComplete: function({chart}) {
+                // Optional: do something after zoom completes
+              }
+            },
+            pan: {
+              enabled: true,
+              mode: 'xy',
+              onPanComplete: function({chart}) {
+                // Optional: do something after pan completes
+              }
+            },
+            limits: {
+              x: {min: 0, max: maxX},
+              y: {min: 0}
+            }
           }
         }
       },
       plugins: [toggleButtonPlugin]
     });
+
+    // Add reset zoom button
+    const resetButton = document.createElement('button');
+    resetButton.textContent = 'Reset Zoom';
+    resetButton.style.cssText = `
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      padding: 8px 12px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      z-index: 1000;
+    `;
+
+    resetButton.addEventListener('click', function() {
+      canvas.chart.resetZoom();
+    });
+
+    // Insert reset button relative to canvas
+    canvas.parentElement.style.position = 'relative';
+    canvas.parentElement.appendChild(resetButton);
+
+    } // End of initializeChart function
   });
