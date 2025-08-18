@@ -28,6 +28,23 @@ class ActivitiesController < ApplicationController
   def show
     @activity = Activity.find(params[:id])
     @split_data = prepare_split_data if @activity.splits.any?
+    Rails.logger.info "=== IMPORT SPEED STARTED ==="
+
+    if @activity.speed_stream
+      speeds = @activity.speed_stream["speeds_mps"]
+      @speed_chart_datasets = [{
+        label: 'Speed (km/h)',
+        data: speeds.each_with_index.map do |speed, index|
+          {
+            x: index, # seconds
+            y: speed > 0 ? (1000.0 / 60.0) / speed : 0 # Pace in min/km
+          }
+        end,
+        borderColor: 'rgb(75, 192, 192)',
+        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+        tension: 0.1
+      }]
+    end
   end
 
   def import

@@ -11,6 +11,7 @@
     const ctx = canvas.getContext(canvas_context);
     const datasets = #{datasets.to_json.html_safe};
     const chartTitle = '#{chart_title}';
+    const xAxisConfig = #{x_axis_config.to_json.html_safe}; // New parameter
 
     let isPaceMode = true;
 
@@ -30,6 +31,18 @@
 
     function formatSpeed(value) {
       return value.toFixed(1) + ' km/h';
+    }
+
+    function formatTime(seconds) {
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      const secs = Math.floor(seconds % 60);
+
+      if (hours > 0) {
+        return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      } else {
+        return `${minutes}:${secs.toString().padStart(2, '0')}`;
+      }
     }
 
     const toggleButtonPlugin = {
@@ -78,15 +91,15 @@
           label: point.label,
           originalPace: point.y
         })),
-        backgroundColor: dataset.borderColor || dataset.color, // Use same color as border
+        backgroundColor: dataset.borderColor || dataset.color,
         borderColor: dataset.borderColor || dataset.color,
         borderWidth: dataset.borderWidth || 2,
         pointRadius: dataset.pointRadius !== undefined ? dataset.pointRadius : 6,
         pointHoverRadius: dataset.pointHoverRadius !== undefined ? dataset.pointHoverRadius : 8,
-        showPoints: dataset.showPoints !== undefined ? dataset.showPoints : true, // New option
-        tension: dataset.tension || 0, // Line smoothness
+        showPoints: dataset.showPoints !== undefined ? dataset.showPoints : true,
+        tension: dataset.tension || 0,
         hidden: dataset.hidden || false,
-        fill: false // Disable area fill
+        fill: false
       };
     });
 
@@ -94,11 +107,10 @@
     const chartDatasets = originalDatasets.map(dataset => ({
       ...dataset,
       data: dataset.data.map(point => ({...point})),
-      // Set point radius based on showPoints option
       pointRadius: dataset.showPoints ? dataset.pointRadius : 0,
       pointHoverRadius: dataset.showPoints ? dataset.pointHoverRadius : 0,
       pointHitRadius: dataset.showPoints ? 10 : 0,
-      fill: false // Ensure no area fill
+      fill: false
     }));
 
     function updateChartUnits() {
@@ -162,6 +174,32 @@
       }
     });
 
+    // Find the maximum x value from all datasets
+    const maxX = Math.max(...originalDatasets.flatMap(dataset =>
+      dataset.data.map(point => point.x)
+    ));
+
+    // Configure x-axis based on the provided configuration
+    const xAxisOptions = {
+      type: 'linear',
+      beginAtZero: true,
+      max: maxX, // Set max to the highest x value in the data
+      title: {
+        display: true,
+        text: xAxisConfig.label || 'Distance (km)' // Default fallback
+      }
+    };
+
+    // Add time-specific formatting if x-axis is time-based
+    if (xAxisConfig.type === 'time') {
+      xAxisOptions.ticks = {
+        maxTicksLimit: 8,
+        callback: function(value) {
+          return formatTime(value);
+        }
+      };
+    }
+
     canvas.chart = new Chart(ctx, {
       type: 'line',
       data: {
@@ -174,14 +212,7 @@
           intersect: false
         },
         scales: {
-          x: {
-            type: 'linear',
-            title: {
-              display: true,
-              text: 'Distance (km)'
-            },
-            beginAtZero: true
-          },
+          x: xAxisOptions,
           y: {
             type: 'linear',
             beginAtZero: true,
@@ -212,7 +243,7 @@
             font: {size: 30}
           },
           legend: {
-            display: datasets.length > 1, // Only show legend if multiple datasets
+            display: datasets.length > 1,
             position: 'top'
           },
           tooltip: {
@@ -220,7 +251,16 @@
               title: function(context) {
                 const dataIndex = context[0].dataIndex;
                 const dataset = originalDatasets[context[0].datasetIndex];
-                return dataset.data[dataIndex].label || `${context[0].parsed.x} km`;
+                const point = dataset.data[dataIndex];
+
+                // Use custom label if provided, otherwise format based on x-axis type
+                if (point.label) {
+                  return point.label;
+                } else if (xAxisConfig.type === 'time') {
+                  return formatTime(context[0].parsed.x);
+                } else {
+                  return `${context[0].parsed.x} ${xAxisConfig.unit || 'km'}`;
+                }
               },
               label: function(context) {
                 const datasetLabel = context.dataset.label || '';

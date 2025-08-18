@@ -1,0 +1,21 @@
+.activity-overview {
+  display: flex;
+  gap: 20px;
+}
+
+.stats-column {
+  flex: 0 0 20%;
+}
+
+.speed-column {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.speed-column .chart-container {
+  width: 100%;
+  /* max-width: 600px; */
+  /* or whatever max width you prefer */
+}

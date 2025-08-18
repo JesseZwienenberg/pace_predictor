@@ -1,40 +1,46 @@
 - content_for(:title, "Activity Details - Running Experts")
+- content_for :head do
+  = stylesheet_link_tag 'show', 'data-turbo-track': 'reload'
 
 %h1= @activity.name
 
 .activity-overview
-  -# Activity details overview
-  .stats-grid
-    .stat
-      %strong Date:
-      = @activity.start_date.strftime("%B %d, %Y")
-    .stat
-      %strong Start time:
-      = @activity.start_date.strftime("%H:%M")
-    .stat
-      %strong End time:
-      = (@activity.start_date + @activity.elapsed_time.seconds).strftime("%H:%M")
-    .stat
-      %strong Distance:
-      = "#{@activity.distance_km.round(2)} km"
-    .stat
-      %strong Duration:
-      = format_time(@activity.duration)
-    .stat
-      %strong Pace:
-      = format_pace(@activity.pace_per_km)
-    .stat
-      %strong Elevation:
-      = @activity.elevation_gain ? "#{@activity.elevation_gain.round(0)}m" : "-"
-    .stat
-      %strong Heart Rate:
-      = @activity.average_heartrate ? "#{@activity.average_heartrate} bpm" : "-"
+  .stats-column
+    .stats-grid
+      .stat
+        %strong Date:
+        = @activity.start_date.strftime("%B %d, %Y")
+      .stat
+        %strong Start time:
+        = @activity.start_date.strftime("%H:%M")
+      .stat
+        %strong End time:
+        = (@activity.start_date + @activity.elapsed_time.seconds).strftime("%H:%M")
+      .stat
+        %strong Distance:
+        = "#{@activity.distance_km.round(2)} km"
+      .stat
+        %strong Duration:
+        = format_time(@activity.duration)
+      .stat
+        %strong Pace:
+        = format_pace(@activity.pace_per_km)
+      .stat
+        %strong Elevation:
+        = @activity.elevation_gain ? "#{@activity.elevation_gain.round(0)}m" : "-"
+      .stat
+        %strong Heart Rate:
+        = @activity.average_heartrate ? "#{@activity.average_heartrate} bpm" : "-"
 
-- if !@activity.speed_stream
-  - if session[:strava_access_token]
-    = button_to "Download Speed Data", activities_import_speed_data_path(@activity), method: :post, class: "btn btn-primary"
-  - else
-    = link_to "Connect with Strava", strava_login_path, class: "btn", data: { turbo: false }
+  .speed-column
+    - if !@activity.speed_stream
+      - if session[:strava_access_token]
+        = button_to "Download Speed Data", activities_import_speed_data_path(@activity), method: :post, class: "btn btn-primary"
+      - else
+        = link_to "Connect with Strava", strava_login_path, class: "btn", data: { turbo: false }
+    - else
+      %div.chart-container
+        %canvas#speedChart
 
 -# Splits
 - if @split_data
@@ -78,3 +84,21 @@
 
 .actions
   = link_to "← Back to Activities", activities_path, class: "btn"
+
+- if @activity.speed_stream
+  :ruby
+    speed_chart_datasets = [
+      {
+        label: 'Pace',
+        data: @speed_chart_datasets[0][:data], # x values should be in seconds
+        color: '#09954f',
+        showPoints: false,
+        borderWidth: 3
+      }
+    ]
+    x_axis_config = {
+      type: 'time',
+      label: 'Time',
+      unit: 'time'
+    }
+  = render 'shared/pace_chart_script', chart_id: 'speedChart', chart_title: 'Speed Over Time', datasets: speed_chart_datasets, x_axis_config: x_axis_config
