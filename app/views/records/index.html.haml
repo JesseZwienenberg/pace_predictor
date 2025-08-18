@@ -5,7 +5,7 @@
 %h1 Personal Records
 
 %div.chart-controls
-  %label Riegel Exponent:
+  %label Exponent:
   %div.exponent-controls
     %button#decrease-exponent.exponent-btn −
     %input#riegel-exponent{type: "text", value: "#{'%.2f' % @exponent}", readonly: true}
@@ -74,6 +74,26 @@
     const exponentInput = document.getElementById('riegel-exponent');
     const decreaseBtn = document.getElementById('decrease-exponent');
     const increaseBtn = document.getElementById('increase-exponent');
+    const chartName = 'recordsChart';
+
+    // Helper function to convert pace to speed
+    function paceToSpeed(pace) {
+      return 60 / pace;
+    }
+
+    function isChartInPaceMode() {
+      const chart = Chart.getChart(chartName);
+      if (chart) {
+        // Check the y-axis title or check the first data point
+        // If y values are typically > 10, it's likely speed (km/h)
+        // If y values are typically < 10, it's likely pace (min/km)
+        const firstDataPoint = chart.data.datasets[0].data[0];
+        if (firstDataPoint && firstDataPoint.y) {
+          return firstDataPoint.y < 10; // Pace values are usually < 10, speed values > 10
+        }
+      }
+      return true; // default to pace mode
+    }
 
     function updateChart(exponent) {
       // Update the input field
@@ -93,13 +113,55 @@
       .then(response => response.json())
       .then(data => {
         // Update the chart with new data
-        const chartName = 'recordsChart';
         const chart = Chart.getChart(chartName);
         if (chart) {
           // Update only the Riegel lines (indices 1, 2, 3)
-          chart.data.datasets[1].data = data.best_riegel_data;
-          chart.data.datasets[2].data = data.avg_riegel_data;
-          chart.data.datasets[3].data = data.worst_riegel_data;
+          let processedBest, processedAvg, processedWorst;
+
+          if (!isChartInPaceMode()) {
+            // Convert to speed
+            processedBest = data.best_riegel_data.map(point => ({
+              x: point.x,
+              y: paceToSpeed(point.y),
+              label: point.label,
+              originalPace: point.y
+            }));
+            processedAvg = data.avg_riegel_data.map(point => ({
+              x: point.x,
+              y: paceToSpeed(point.y),
+              label: point.label,
+              originalPace: point.y
+            }));
+            processedWorst = data.worst_riegel_data.map(point => ({
+              x: point.x,
+              y: paceToSpeed(point.y),
+              label: point.label,
+              originalPace: point.y
+            }));
+          } else {
+            // Keep as pace but ensure originalPace property exists
+            processedBest = data.best_riegel_data.map(point => ({
+              x: point.x,
+              y: point.y,
+              label: point.label,
+              originalPace: point.y
+            }));
+            processedAvg = data.avg_riegel_data.map(point => ({
+              x: point.x,
+              y: point.y,
+              label: point.label,
+              originalPace: point.y
+            }));
+            processedWorst = data.worst_riegel_data.map(point => ({
+              x: point.x,
+              y: point.y,
+              label: point.label,
+              originalPace: point.y
+            }));
+          }
+          chart.data.datasets[1].data = processedBest;
+          chart.data.datasets[2].data = processedAvg;
+          chart.data.datasets[3].data = processedWorst;
           chart.update();
         }
       })
