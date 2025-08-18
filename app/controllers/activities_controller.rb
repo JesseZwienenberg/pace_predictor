@@ -33,10 +33,11 @@ class ActivitiesController < ApplicationController
       speeds = @activity.speed_stream["speeds_mps"]
       @speed_chart_datasets = [{
         label: 'Speed (km/h)',
-        data: speeds.each_with_index.map do |speed, index|
+        data: speeds.each_with_index.filter_map do |speed, index|
+          next if speed == 0
           {
             x: index, # seconds
-            y: speed > 0 ? (1000.0 / 60.0) / speed : 0 # Pace in min/km
+            y: (1000.0 / 60.0) / speed # Pace in min/km
           }
         end,
         borderColor: 'rgb(75, 192, 192)',
