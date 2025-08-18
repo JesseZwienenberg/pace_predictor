@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_13_130415) do
+ActiveRecord::Schema[8.0].define(version: 2025_08_18_064908) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -29,6 +29,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_13_130415) do
     t.float "max_speed"
     t.integer "elapsed_time"
     t.string "activity_type"
+    t.json "speed_stream"
   end
 
   create_table "best_efforts", force: :cascade do |t|

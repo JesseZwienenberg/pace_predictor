@@ -30,6 +30,12 @@
       %strong Heart Rate:
       = @activity.average_heartrate ? "#{@activity.average_heartrate} bpm" : "-"
 
+- if !@activity.speed_stream
+  - if session[:strava_access_token]
+    = button_to "Download Speed Data", activities_import_speed_data_path(@activity), method: :post, class: "btn btn-primary"
+  - else
+    = link_to "Connect with Strava", strava_login_path, class: "btn", data: { turbo: false }
+
 -# Splits
 - if @split_data
   %h2 Kilometer Splits

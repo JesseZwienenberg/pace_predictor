@@ -39,7 +39,60 @@ class ActivitiesController < ApplicationController
     end
   end
 
+  def import_speed
+    @activity = Activity.find(params[:id])
+    
+    if session[:strava_access_token]
+      if import_activity_speed_stream(@activity.strava_id, session[:strava_access_token])
+        redirect_to @activity, notice: "Speed data imported successfully!"
+      else
+        redirect_to @activity, alert: "Failed to import speed data"
+      end
+    else
+      redirect_to dashboard_path, alert: "Please connect to Strava first"
+    end
+  end
+
   private
+
+  def import_activity_speed_stream(strava_id, access_token)
+    # Request streams for velocity (speed) data
+    response = HTTParty.get(
+      "https://www.strava.com/api/v3/activities/#{strava_id}/streams",
+      headers: { 'Authorization' => "Bearer #{access_token}" },
+      query: { 
+        keys: 'velocity_smooth,time,distance',
+        key_by_type: true 
+      }
+    )
+    
+    return false unless response.success?
+    
+    streams_data = response.parsed_response
+    return false unless streams_data['velocity_smooth']
+    
+    # Parse and save the speed data
+    speed_data = {
+      speeds_mps: streams_data['velocity_smooth']['data'],
+      times: streams_data['time'] ? streams_data['time']['data'] : nil,
+      distances: streams_data['distance'] ? streams_data['distance']['data'] : nil
+    }
+    
+    # Convert to other units for convenience
+    speed_data[:speeds_kmh] = speed_data[:speeds_mps].map { |speed| speed * 3.6 }
+    speed_data[:paces_min_per_km] = speed_data[:speeds_mps].map do |speed|
+      speed > 0 ? (1000.0 / speed / 60.0) : 0
+    end
+    
+    # Save to database
+    activity = Activity.find_by(strava_id: strava_id)
+    activity&.update(speed_stream: speed_data)
+    
+    true
+  rescue => e
+    Rails.logger.error "Error importing speed stream: #{e.message}"
+    false
+  end
 
   def import_strava_activities
     access_token = session[:strava_access_token]
@@ -115,8 +168,6 @@ class ActivitiesController < ApplicationController
       end
     end
   end
-
-  private
 
   def apply_filters(activities)
     if params[:day_of_week].present?

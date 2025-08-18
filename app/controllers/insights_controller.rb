@@ -223,8 +223,6 @@ class InsightsController < ApplicationController
     }
   end
 
-  private
-
   def interpret_pace_trend(slope)
     if slope > 0.1
       "You tend to start too fast and slow down significantly"
