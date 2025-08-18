@@ -45,8 +45,6 @@ class ActivitiesController < ApplicationController
         tension: 0.1
       }]
     end
-
-    find_min_consecutive_for_multiples_of_10
   end
 
   def import
@@ -75,6 +73,7 @@ class ActivitiesController < ApplicationController
   private
 
   def import_activity_speed_stream(strava_id, access_token)
+    Rails.logger.info "======== STARTING SPEED IMPORT FOR ACTIVITY #{strava_id} ========"
     # Request streams for velocity (speed) data
     response = HTTParty.get(
       "https://www.strava.com/api/v3/activities/#{strava_id}/streams",
@@ -84,9 +83,13 @@ class ActivitiesController < ApplicationController
         key_by_type: true 
       }
     )
+
+    Rails.logger.info "======== REQUEST MADE #{response.inspect} ========"
     
     return false unless response.success?
     
+    Rails.logger.info "======== REQUEST DONE #{response.parsed_response.inspect} ========"
+
     streams_data = response.parsed_response
     return false unless streams_data['velocity_smooth']
     
@@ -103,12 +106,22 @@ class ActivitiesController < ApplicationController
       speed > 0 ? (1000.0 / speed / 60.0) : 0
     end
     
+    Rails.logger.info "=== Downloading best efforts for activity #{strava_id} ==="
+    # Compute best efforts
+    best_efforts = find_min_consecutive_for_multiples_of_10(speed_data[:speeds_mps])
+    
     # Save to database
     activity = Activity.find_by(strava_id: strava_id)
-    activity&.update(speed_stream: speed_data)
+    activity&.update(
+      speed_stream: speed_data,
+      all_best_efforts: best_efforts
+    )
+
+    Rails.logger.info "======== SPEED IMPORT COMPLETED FOR ACTIVITY #{strava_id} ========"
     
     true
   rescue => e
+    Rails.logger.error "Error importing speed data for activity #{strava_id}: #{e.message}"
     false
   end
 
@@ -293,8 +306,7 @@ class ActivitiesController < ApplicationController
     end
   end
 
-  def find_min_consecutive_for_multiples_of_10
-    speeds = @activity.speed_stream["speeds_mps"]
+  def find_min_consecutive_for_multiples_of_10(speeds)
     total_sum = speeds.sum
     max_target = (total_sum / 10).floor * 10
     
