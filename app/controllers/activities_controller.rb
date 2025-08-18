@@ -28,7 +28,6 @@ class ActivitiesController < ApplicationController
   def show
     @activity = Activity.find(params[:id])
     @split_data = prepare_split_data if @activity.splits.any?
-    Rails.logger.info "=== IMPORT SPEED STARTED ==="
 
     if @activity.speed_stream
       speeds = @activity.speed_stream["speeds_mps"]
@@ -45,6 +44,8 @@ class ActivitiesController < ApplicationController
         tension: 0.1
       }]
     end
+
+    find_min_consecutive_for_multiples_of_10
   end
 
   def import
@@ -68,7 +69,7 @@ class ActivitiesController < ApplicationController
     else
       redirect_to dashboard_path, alert: "Please connect to Strava first"
     end
-  end
+  end  
 
   private
 
@@ -107,7 +108,6 @@ class ActivitiesController < ApplicationController
     
     true
   rescue => e
-    Rails.logger.error "Error importing speed stream: #{e.message}"
     false
   end
 
@@ -243,52 +243,87 @@ class ActivitiesController < ApplicationController
     
     filters.any? ? "Showing: #{filters.join(', ')}" : nil
   end
-end
 
-def prepare_split_data
-  splits = @activity.splits.order(:split)
-  
-  # Calculate average pace
-  total_time = splits.sum(:elapsed_time)
-  total_distance = splits.sum(:distance)
-  average_pace = total_distance > 0 ? (total_time / 60.0) / (total_distance / 1000.0) : 0
-  
-  # Process each split
-  splits.map do |split|
-    pace = split.distance > 0 ? (split.elapsed_time / 60.0) / (split.distance / 1000.0) : 0
-    pace_difference = pace - average_pace
-    pace_difference_seconds = pace_difference * 60
+  def prepare_split_data
+    splits = @activity.splits.order(:split)
     
-    {
-      split: split,
-      pace: pace,
-      km_label: split.distance > 990 ? split.split.to_s : sprintf('%.2f', split.split - 1 + split.distance / 1000),
-      formatted_pace: format_pace(pace),
-      speed_kmph: pace_to_kmph(pace),
-      elevation_text: "#{split.elevation_difference.round(0)}m",
-      difference_data: calculate_difference_display(split, pace_difference, pace_difference_seconds)
-    }
+    # Calculate average pace
+    total_time = splits.sum(:elapsed_time)
+    total_distance = splits.sum(:distance)
+    average_pace = total_distance > 0 ? (total_time / 60.0) / (total_distance / 1000.0) : 0
+    
+    # Process each split
+    splits.map do |split|
+      pace = split.distance > 0 ? (split.elapsed_time / 60.0) / (split.distance / 1000.0) : 0
+      pace_difference = pace - average_pace
+      pace_difference_seconds = pace_difference * 60
+      
+      {
+        split: split,
+        pace: pace,
+        km_label: split.distance > 990 ? split.split.to_s : sprintf('%.2f', split.split - 1 + split.distance / 1000),
+        formatted_pace: format_pace(pace),
+        speed_kmph: pace_to_kmph(pace),
+        elevation_text: "#{split.elevation_difference.round(0)}m",
+        difference_data: calculate_difference_display(split, pace_difference, pace_difference_seconds)
+      }
+    end
   end
-end
 
-def calculate_difference_display(split, pace_difference, pace_difference_seconds)
-  rounded_difference = sprintf('%.2f', pace_difference.abs).to_f
-  is_faster = pace_difference < 0
-  
-  if split.distance < 800 || rounded_difference == 0.0
-    {
-      color: 'inherit',
-      text: split.distance < 800 ? '' : format_time(pace_difference_seconds.abs)
-    }
-  elsif pace_difference_seconds.abs < 10
-    {
-      color: is_faster ? 'mediumseagreen' : 'indianred',
-      text: "#{is_faster ? '' : '+'}#{format_time(pace_difference_seconds.abs)}"
-    }
-  else
-    {
-      color: is_faster ? 'green' : 'red',
-      text: "#{is_faster ? '' : '+'}#{format_time(pace_difference_seconds.abs)}"
-    }
+  def calculate_difference_display(split, pace_difference, pace_difference_seconds)
+    rounded_difference = sprintf('%.2f', pace_difference.abs).to_f
+    is_faster = pace_difference < 0
+    
+    if split.distance < 800 || rounded_difference == 0.0
+      {
+        color: 'inherit',
+        text: split.distance < 800 ? '' : format_time(pace_difference_seconds.abs)
+      }
+    elsif pace_difference_seconds.abs < 10
+      {
+        color: is_faster ? 'mediumseagreen' : 'indianred',
+        text: "#{is_faster ? '' : '+'}#{format_time(pace_difference_seconds.abs)}"
+      }
+    else
+      {
+        color: is_faster ? 'green' : 'red',
+        text: "#{is_faster ? '' : '+'}#{format_time(pace_difference_seconds.abs)}"
+      }
+    end
+  end
+
+  def find_min_consecutive_for_multiples_of_10
+    speeds = @activity.speed_stream["speeds_mps"]
+    total_sum = speeds.sum
+    max_target = (total_sum / 10).floor * 10
+    
+    Rails.logger.info "=== FINDING CONSECUTIVE ELEMENTS ==="
+
+    return [] if max_target == 0
+    
+    results = []
+
+    index = 0
+    
+    (10..max_target).step(10) do |target|
+      index += 1
+      min_length = Float::INFINITY
+      current_sum = 0
+      left = 0
+      
+      speeds.each_with_index do |speed, right|
+        current_sum += speed
+        
+        while current_sum >= target
+          min_length = [min_length, right - left + 1].min
+          current_sum -= speeds[left]
+          left += 1
+        end
+      end
+      
+      results << min_length * 100.0 / index / 60
+    end
+
+    results
   end
 end

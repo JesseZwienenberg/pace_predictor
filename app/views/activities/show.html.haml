@@ -6,31 +6,40 @@
 
 .activity-overview
   .stats-column
-    .stats-grid
-      .stat
-        %strong Date:
-        = @activity.start_date.strftime("%B %d, %Y")
-      .stat
-        %strong Start time:
-        = @activity.start_date.strftime("%H:%M")
-      .stat
-        %strong End time:
-        = (@activity.start_date + @activity.elapsed_time.seconds).strftime("%H:%M")
-      .stat
-        %strong Distance:
-        = "#{@activity.distance_km.round(2)} km"
-      .stat
-        %strong Duration:
-        = format_time(@activity.duration)
-      .stat
-        %strong Pace:
-        = format_pace(@activity.pace_per_km)
-      .stat
-        %strong Elevation:
-        = @activity.elevation_gain ? "#{@activity.elevation_gain.round(0)}m" : "-"
-      .stat
-        %strong Heart Rate:
-        = @activity.average_heartrate ? "#{@activity.average_heartrate} bpm" : "-"
+    %table.stats-table
+      %tbody
+        %tr
+          %td
+            %strong Date:
+          %td= @activity.start_date.strftime("%B %d, %Y")
+        %tr
+          %td
+            %strong Start time:
+          %td= @activity.start_date.strftime("%H:%M")
+        %tr
+          %td
+            %strong End time:
+          %td= (@activity.start_date + @activity.elapsed_time.seconds).strftime("%H:%M")
+        %tr
+          %td
+            %strong Distance:
+          %td= "#{@activity.distance_km.round(2)} km"
+        %tr
+          %td
+            %strong Duration:
+          %td= format_time(@activity.duration)
+        %tr
+          %td
+            %strong Pace:
+          %td= format_pace(@activity.pace_per_km)
+        %tr
+          %td
+            %strong Elevation:
+          %td= @activity.elevation_gain ? "#{@activity.elevation_gain.round(0)}m" : "-"
+        %tr
+          %td
+            %strong Heart Rate:
+          %td= @activity.average_heartrate ? "#{@activity.average_heartrate} bpm" : "-"
 
   .speed-column
     - if !@activity.speed_stream

@@ -8,8 +8,11 @@
     }
 
     // Load Chart.js zoom plugin if not already loaded
-    if (typeof Chart !== 'undefined' && !Chart.registry.plugins.get('zoom')) {
-      const script = document.createElement('script');
+    const zoomstr = 'zoom';
+    const scriptstr = 'script';
+
+    if (typeof Chart !== 'undefined' && !Chart.registry.plugins.get(zoomstr)) {
+      const script = document.createElement(scriptstr);
       script.src = 'https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js';
       document.head.appendChild(script);
 
@@ -316,14 +319,15 @@
     });
 
     // Add reset zoom button
-    const resetButton = document.createElement('button');
+    const buttonstr = 'button'
+    const resetButton = document.createElement(buttonstr);
     resetButton.textContent = 'Reset Zoom';
     resetButton.style.cssText = `
       position: absolute;
       top: 10px;
       right: 10px;
       padding: 8px 12px;
-      background-color: #007bff;
+      background-color: #099443;
       color: white;
       border: none;
       border-radius: 4px;
