@@ -114,6 +114,8 @@ class ActivitiesController < ApplicationController
       headers: { 'Authorization' => "Bearer #{access_token}" },
       query: { per_page: 200 }
     )
+
+    Rails.logger.info "== Importing Strava activities == #{response.inspect}"
     
     if response.success?
       response.each do |activity_data|
@@ -281,12 +283,12 @@ class ActivitiesController < ApplicationController
     elsif pace_difference_seconds.abs < 10
       {
         color: is_faster ? 'mediumseagreen' : 'indianred',
-        text: "#{is_faster ? '' : '+'}#{format_time(pace_difference_seconds.abs)}"
+        text: "#{is_faster ? '-' : '+'}#{format_time(pace_difference_seconds.abs)}"
       }
     else
       {
         color: is_faster ? 'green' : 'red',
-        text: "#{is_faster ? '' : '+'}#{format_time(pace_difference_seconds.abs)}"
+        text: "#{is_faster ? '-' : '+'}#{format_time(pace_difference_seconds.abs)}"
       }
     end
   end
