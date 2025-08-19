@@ -114,8 +114,6 @@ class ActivitiesController < ApplicationController
       headers: { 'Authorization' => "Bearer #{access_token}" },
       query: { per_page: 200 }
     )
-
-    Rails.logger.info "== Importing Strava activities == #{response.inspect}"
     
     if response.success?
       response.each do |activity_data|

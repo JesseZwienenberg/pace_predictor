@@ -2,6 +2,7 @@ class RecordsController < ApplicationController
   def index
     @personal_records = calculate_personal_records
     @chart_data = prepare_chart_data
+    @best_efforts_chart_data = prepare_best_efforts_chart_data
     
     @exponent = (params[:exponent] || 1.06).to_f
     @best_riegel_data, @worst_riegel_data, @avg_riegel_data = calculate_riegel_data(@exponent)
@@ -55,6 +56,19 @@ class RecordsController < ApplicationController
         x: distance_to_km(name),
         y: record[:pace].round(2),
         label: name
+      }
+    end
+  end
+
+  def prepare_best_efforts_chart_data
+    # Get all best efforts ordered by distance
+    best_efforts = AllTimeBestEffort.order(:distance_meters)
+    
+    # Convert to chart format
+    best_efforts.map do |record|
+      {
+        x: record.distance_meters / 1000.0,  # Convert meters to km
+        y: record.pace_min_per_km.round(3)   # Pace in min/km
       }
     end
   end
