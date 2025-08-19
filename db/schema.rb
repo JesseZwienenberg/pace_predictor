@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_18_132735) do
+ActiveRecord::Schema[8.0].define(version: 2025_08_19_094928) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -31,6 +31,17 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_18_132735) do
     t.string "activity_type"
     t.json "speed_stream"
     t.json "all_best_efforts"
+  end
+
+  create_table "all_time_best_efforts", force: :cascade do |t|
+    t.integer "distance_meters", null: false
+    t.float "pace_min_per_km", null: false
+    t.bigint "activity_id"
+    t.datetime "achieved_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["distance_meters"], name: "index_all_time_best_efforts_on_distance_meters", unique: true
+    t.index ["pace_min_per_km"], name: "index_all_time_best_efforts_on_pace_min_per_km"
   end
 
   create_table "best_efforts", force: :cascade do |t|
@@ -68,6 +79,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_18_132735) do
     t.datetime "updated_at", null: false
   end
 
+  add_foreign_key "all_time_best_efforts", "activities"
   add_foreign_key "best_efforts", "activities"
   add_foreign_key "splits", "activities"
 end
