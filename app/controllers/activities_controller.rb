@@ -29,22 +29,7 @@ class ActivitiesController < ApplicationController
     @activity = Activity.find(params[:id])
     @split_data = prepare_split_data if @activity.splits.any?
 
-    if @activity.speed_stream
-      speeds = @activity.speed_stream["speeds_mps"]
-      @speed_chart_datasets = [{
-        label: 'Speed (km/h)',
-        data: speeds.each_with_index.filter_map do |speed, index|
-          next if speed == 0
-          {
-            x: index, # seconds
-            y: (1000.0 / 60.0) / speed # Pace in min/km
-          }
-        end,
-        borderColor: 'rgb(75, 192, 192)',
-        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-        tension: 0.1
-      }]
-    end
+    set_graph_signals
   end
 
   def import
@@ -77,7 +62,6 @@ class ActivitiesController < ApplicationController
   private
 
   def import_activity_speed_stream(strava_id, access_token)
-    Rails.logger.info "======== STARTING SPEED IMPORT FOR ACTIVITY #{strava_id} ========"
     # Request streams for velocity (speed) data
     response = HTTParty.get(
       "https://www.strava.com/api/v3/activities/#{strava_id}/streams",
@@ -87,12 +71,8 @@ class ActivitiesController < ApplicationController
         key_by_type: true 
       }
     )
-
-    Rails.logger.info "======== REQUEST MADE #{response.inspect} ========"
     
     return false unless response.success?
-    
-    Rails.logger.info "======== REQUEST DONE #{response.parsed_response.inspect} ========"
 
     streams_data = response.parsed_response
     return false unless streams_data['velocity_smooth']
@@ -109,8 +89,7 @@ class ActivitiesController < ApplicationController
     speed_data[:paces_min_per_km] = speed_data[:speeds_mps].map do |speed|
       speed > 0 ? (1000.0 / speed / 60.0) : 0
     end
-    
-    Rails.logger.info "=== Downloading best efforts for activity #{strava_id} ==="
+
     # Compute best efforts
     best_efforts = find_min_consecutive_for_multiples_of_10(speed_data[:speeds_mps])
     
@@ -120,12 +99,9 @@ class ActivitiesController < ApplicationController
       speed_stream: speed_data,
       all_best_efforts: best_efforts
     )
-
-    Rails.logger.info "======== SPEED IMPORT COMPLETED FOR ACTIVITY #{strava_id} ========"
     
     true
   rescue => e
-    Rails.logger.error "Error importing speed data for activity #{strava_id}: #{e.message}"
     false
   end
 
@@ -318,8 +294,6 @@ class ActivitiesController < ApplicationController
   def find_min_consecutive_for_multiples_of_10(speeds)
     total_sum = speeds.sum
     max_target = (total_sum / 10).floor * 10
-    
-    Rails.logger.info "=== FINDING CONSECUTIVE ELEMENTS ==="
 
     return [] if max_target == 0
     
@@ -347,5 +321,41 @@ class ActivitiesController < ApplicationController
     end
 
     results
+  end
+
+  def set_graph_signals
+    if @activity.speed_stream
+      speeds = @activity.speed_stream["speeds_mps"]
+      @speed_chart_datasets = [{
+        label: 'Pace',
+        data: speeds.each_with_index.filter_map do |speed, index|
+          next if speed == 0
+          {
+            x: index, # seconds
+            y: (1000.0 / 60.0) / speed # Pace in min/km
+          }
+        end,
+        color: '#09954f',
+        showPoints: false,
+        borderWidth: 3
+      }]
+    end
+
+    if @activity.all_best_efforts
+      speeds = @activity.all_best_efforts
+      @best_efforts_datasets = [{
+        label: 'Pace',
+        data: speeds.each_with_index.filter_map do |speed, index|
+          next if speed == 0
+          {
+            x: (index * 0.01).round(2), # Distance in km
+            y: speed # Pace in min/km
+          }
+        end,
+        color: '#09954f',
+        showPoints: false,
+        borderWidth: 3
+      }] 
+    end
   end
 end

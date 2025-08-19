@@ -91,23 +91,21 @@
           %td= format_pace(pace)
           %td= pace_to_kmph(pace)
 
+- if @activity.all_best_efforts
+  %div.chart-container
+    %canvas#bestEffortsChart
+
 .actions
   = link_to "← Back to Activities", activities_path, class: "btn"
 
 - if @activity.speed_stream
   :ruby
-    speed_chart_datasets = [
-      {
-        label: 'Pace',
-        data: @speed_chart_datasets[0][:data], # x values should be in seconds
-        color: '#09954f',
-        showPoints: false,
-        borderWidth: 3
-      }
-    ]
     x_axis_config = {
       type: 'time',
       label: 'Time',
       unit: 'time'
     }
-  = render 'shared/pace_chart_script', chart_id: 'speedChart', chart_title: 'Speed Over Time', datasets: speed_chart_datasets, x_axis_config: x_axis_config
+  = render 'shared/pace_chart_script', chart_id: 'speedChart', chart_title: 'Speed Over Time', datasets: @speed_chart_datasets, x_axis_config: x_axis_config
+
+- if @activity.all_best_efforts
+  = render 'shared/pace_chart_script', chart_id: 'bestEffortsChart', chart_title: 'Best Efforts', datasets: @best_efforts_datasets
