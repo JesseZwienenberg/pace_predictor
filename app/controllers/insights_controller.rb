@@ -187,7 +187,7 @@ class InsightsController < ApplicationController
   end
 
   def calculate_within_run_pace_consistency
-    activities_with_splits = @filtered_activities.joins(:splits).includes(:splits).distinct
+    activities_with_splits = @filtered_activities.joins(:splits).includes(:splits)
     
     pace_trends = []
     
