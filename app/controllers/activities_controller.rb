@@ -49,8 +49,12 @@ class ActivitiesController < ApplicationController
 
   def import
     if session[:strava_access_token]
-      import_strava_activities
-      redirect_to activities_path, notice: "Activities imported successfully!"
+      begin
+        import_strava_activities
+        redirect_to activities_path, notice: "Activities imported successfully!"
+      rescue Net::OpenTimeout, Net::ReadTimeout, Errno::ECONNREFUSED, SocketError
+        redirect_to root_path, alert: "Unable to connect to Strava. Please try again later."
+      end
     else
       redirect_to dashboard_path, alert: "Please connect to Strava first"
     end
@@ -139,7 +143,12 @@ class ActivitiesController < ApplicationController
       response.each do |activity_data|
         # Only import running activities
         if activity_data['type'] == 'Run'
-          import_detailed_activity(activity_data['id'], access_token)
+          begin
+            import_detailed_activity(activity_data['id'], access_token)
+          rescue Net::OpenTimeout, Net::ReadTimeout, Errno::ECONNREFUSED, SocketError
+            # Skip this activity and continue with the next one
+            next
+          end
         end
       end
     end

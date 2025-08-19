@@ -1,6 +1,13 @@
 - content_for(:title, "Running Experts")
 - content_for :head do
   = stylesheet_link_tag 'dashboard', 'data-turbo-track': 'reload'
+
+- if notice
+  .flash-notice= notice
+
+- if alert
+  .flash-alert= alert
+
 .dashboard-main-content
   .dashboard-left
     .dashboard-stats

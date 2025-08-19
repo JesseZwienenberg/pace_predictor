@@ -4,6 +4,9 @@ Rails.application.routes.draw do
   # Strava OAuth
   get '/auth/strava', as: 'strava_login'
   get '/auth/strava/callback', to: 'sessions#create'
+  get '/manual_token', to: 'sessions#manual_token'
+  post '/manual_token', to: 'sessions#set_manual_token'
+  get '/auth/failure', to: 'sessions#omniauth_failure'
   
   # Main app routes
   get 'dashboard', to: 'dashboard#index'

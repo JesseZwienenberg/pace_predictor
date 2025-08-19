@@ -3,3 +3,7 @@ Rails.application.config.middleware.use OmniAuth::Builder do
 end
 
 OmniAuth.config.allowed_request_methods = [:get, :post]
+
+OmniAuth.config.on_failure = proc do |env|
+  SessionsController.action(:omniauth_failure).call(env)
+end

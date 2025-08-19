@@ -1,0 +1,35 @@
+- content_for(:title, "Strava Connection Error")
+
+- if notice
+  .flash-notice= notice
+
+- if alert
+  .flash-alert= alert
+
+.dashboard-main-content
+  .dashboard-left
+    .strava-section
+      %h2 Strava Connection Error
+      %p Unable to connect to Strava servers. You can manually enter your access token below:
+
+      .stats-grid
+        .stat-card
+          %strong How to get your token:
+          %ol
+            %li
+              Go to
+              = link_to "https://www.strava.com/settings/api", "https://www.strava.com/settings/api", target: "_blank"
+            %li Create an app if you haven't already
+            %li Copy your access token from the API settings
+
+      = form_with url: manual_token_path, method: :post, local: true do |f|
+        .input-group
+          = f.label :token, "Access Token:"
+          = f.text_field :token, placeholder: "Paste your Strava access token here", style: "font-family: monospace;"
+
+        = f.submit "Set Token", class: "btn"
+
+      %p.connected_to_strava
+        %strong Note:
+        This is a temporary workaround for network connectivity issues.
+        The token will only be stored in your session.
