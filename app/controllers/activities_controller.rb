@@ -132,7 +132,7 @@ class ActivitiesController < ApplicationController
 
   def import_detailed_activity(strava_id, access_token)
     # Skip if activity already exists
-    return if Activity.find_by(strava_id:15487319964)
+    return if Activity.find_by(strava_id:strava_id)
 
     detailed_response = HTTParty.get(
       "https://www.strava.com/api/v3/activities/#{strava_id}",
