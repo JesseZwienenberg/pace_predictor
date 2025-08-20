@@ -59,6 +59,19 @@ class ActivitiesController < ApplicationController
     end
   end  
 
+  def bulk_import_speed_streams
+    # Get access token (adjust this to however you store/retrieve tokens)
+    access_token = session[:strava_access_token]
+    
+    activities_without_streams = Activity.where(speed_stream: nil)
+    
+    activities_without_streams.each do |activity|
+      import_activity_speed_stream(activity.strava_id, access_token)
+    end
+    
+    redirect_to activities_path, notice: "Speed streams imported for #{activities_without_streams.count} activities"
+  end
+
   private
 
   def import_activity_speed_stream(strava_id, access_token)

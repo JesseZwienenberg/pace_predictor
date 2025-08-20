@@ -23,4 +23,10 @@ Rails.application.routes.draw do
       get :easy_targets
     end
   end
+
+  resources :activities do
+    collection do
+      post :bulk_import_speed_streams
+    end
+  end
 end
