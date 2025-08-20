@@ -157,8 +157,8 @@
       %p
         Average pace change:
         %strong
-          = "#{format_pace(@within_run_pace_consistency[:average_pace_trend_per_km].abs)}"
-          != "/km<sup>2</sup>"
+          = "#{(@within_run_pace_consistency[:average_pace_trend_per_km] * 60).round(1)}"
+          != "s/km<sup>2</sup>"
         - if @within_run_pace_consistency[:average_pace_trend_per_km] > 0
           (getting slower)
         - else
