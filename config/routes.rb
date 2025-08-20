@@ -16,4 +16,11 @@ Rails.application.routes.draw do
   post 'activities/import/:id', to: 'activities#import_speed', as: 'activities_import_speed_data'
   get "records", to: 'records#index'
   get 'insights', to: 'insights#index'
+
+  resources :segments, only: [] do
+    collection do
+      get :search
+      get :easy_targets
+    end
+  end
 end

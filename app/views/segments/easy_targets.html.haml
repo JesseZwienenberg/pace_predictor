@@ -1,0 +1,13 @@
+-# app/views/segments/easy_targets.html.haml
+- if @max_pace
+  %p Filtering: KOM pace ≥ #{@max_pace} min/km
+
+- @segments.each do |seg|
+  %div
+    = seg[:name]
+    |
+    = "#{seg[:distance]}m"
+    |
+    KOM pace: #{seg[:kom_pace].round(2)} min/km
+    |
+    Ratio: #{(seg[:difficulty_ratio] * 100).round}%
