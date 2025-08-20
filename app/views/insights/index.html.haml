@@ -124,7 +124,7 @@
           - @rest_day_impact.each do |rest_days, data|
             %tr{ class: (data[:pace] == @rest_day_impact.values.map { |d| d[:pace] }.min ? 'fastest-row' : '') }
               %td.rest-days= "#{rest_days} days"
-              %td.pace-value= "#{format_pace(data[:pace])}"
+              %td.pace-value= "#{format_pace(data[:pace])} /km"
               %td.count-value= data[:count]
     - else
       %p Not enough data
