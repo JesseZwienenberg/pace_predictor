@@ -17,4 +17,11 @@ class SegmentsController < ApplicationController
     
     @max_pace = params[:max_pace]
   end
+  
+  def refresh_kom
+    finder = EasySegmentFinder.new(session[:strava_access_token])
+    kom_time = finder.refresh_segment(params[:id])
+    
+    redirect_back(fallback_location: root_path, notice: "KOM updated: #{kom_time}s")
+  end
 end

@@ -1,13 +1,22 @@
 -# app/views/segments/easy_targets.html.haml
-- if @max_pace
+- if @max_pace.present?
   %p Filtering: KOM pace ≥ #{@max_pace} min/km
 
-- @segments.each do |seg|
-  %div
-    = seg[:name]
-    |
-    = "#{seg[:distance]}m"
-    |
-    KOM pace: #{seg[:kom_pace].round(2)} min/km
-    |
-    Ratio: #{(seg[:difficulty_ratio] * 100).round}%
+%table
+  %thead
+    %tr
+      %th Name
+      %th Distance
+      %th KOM Pace
+      %th Ratio
+      %th Actions
+  %tbody
+    - @segments.each do |seg|
+      %tr
+        %td= link_to seg[:name], "https://www.strava.com/segments/#{seg[:id]}", target: "_blank"
+        %td= "#{seg[:distance]}m"
+        %td= "#{format_pace(seg[:kom_pace])} min/km"
+        %td= "#{(seg[:difficulty_ratio] * 100).round}%"
+        %td
+          = form_with url: refresh_kom_segment_path(seg[:id]), method: :post, local: true do
+            = submit_tag "Refresh KOM"

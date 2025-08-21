@@ -20,7 +20,11 @@ Rails.application.routes.draw do
   resources :segments, only: [] do
     collection do
       get :search
-      get :easy_targets
+      get :easy_targets   # For displaying the page
+      # post :easy_targets  # For receiving form submission
+    end
+    member do
+      post :refresh_kom  # Added this for the refresh action
     end
   end
 
@@ -29,4 +33,5 @@ Rails.application.routes.draw do
       post :bulk_import_speed_streams
     end
   end
+  
 end

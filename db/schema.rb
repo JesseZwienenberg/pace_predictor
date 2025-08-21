@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_19_094928) do
+ActiveRecord::Schema[8.0].define(version: 2025_08_21_185503) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -55,6 +55,16 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_19_094928) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["activity_id"], name: "index_best_efforts_on_activity_id"
+  end
+
+  create_table "cached_segments", force: :cascade do |t|
+    t.bigint "strava_id", null: false
+    t.string "name"
+    t.float "distance"
+    t.integer "kom_time"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["strava_id"], name: "index_cached_segments_on_strava_id", unique: true
   end
 
   create_table "splits", force: :cascade do |t|
