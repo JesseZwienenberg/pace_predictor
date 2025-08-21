@@ -51,7 +51,16 @@
     color: #666;
     font-size: 0.9em;
   }
+
+  label {
+    margin-left: 50px;
+  }
 }
+
+#reference-distance-slider {
+  accent-color: #09944e;
+}
+
 
 .chart-container {
   width: 80%;

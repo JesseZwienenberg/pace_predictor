@@ -35,10 +35,6 @@
         %td= record[:date].strftime("%d/%m/%Y")
         %td= link_to record[:activity].name, activity_path(record[:activity])
 
-
-%div.chart-container{style: "width: 80%; margin: 20px auto;"}
-  %canvas#bestEffortsChart
-
 %div#riegel-controls-best-effort.chart-controls
   %label Exponent:
   %div.exponent-controls
@@ -56,6 +52,10 @@
   }
   %br/
   %span#reference-distance-label 5.0 km
+
+
+%div.chart-container{style: "width: 80%; margin: 20px auto;"}
+  %canvas#bestEffortsChart
 
 
 :ruby
