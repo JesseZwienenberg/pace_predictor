@@ -3,23 +3,71 @@ class RecordsController < ApplicationController
     @personal_records = calculate_personal_records
     @chart_data = prepare_chart_data
     @best_efforts_chart_data = prepare_best_efforts_chart_data
-    
     @exponent = (params[:exponent] || 1.06).to_f
     @best_riegel_data, @worst_riegel_data, @avg_riegel_data = calculate_riegel_data(@exponent)
 
-    # Handle AJAX requests for updating chart
+    @max_best_effort_distance = @best_efforts_chart_data.map { |pt| pt[:x] }.max
+    @default_reference_distance = 5.0
+    ref_distance_km = @default_reference_distance
+    ref_distance_m = ref_distance_km * 1000
+    ref_effort = AllTimeBestEffort.where("ABS(distance_meters - ?) < 1", ref_distance_m).first
+
+    Rails.logger.info "=========== Riegel REF: distance_m=#{ref_effort&.distance_meters} pace=#{ref_effort&.pace_min_per_km} from requested #{ref_distance_km}"
+
+
+    if ref_effort
+      d1 = ref_effort.distance_meters / 1000.0
+      t1 = ref_effort.pace_min_per_km * d1
+
+      Rails.logger.info "=========== Riegel REF (HTML): distance_km=#{d1} total_time_min=#{t1.round(2)}"
+
+      @best_efforts_riegel_data = @best_efforts_chart_data.map do |pt|
+        d2 = pt[:x]
+        t2 = t1 * (d2 / d1)**@exponent
+        pace = t2 / d2
+        { x: d2, y: pace.round(2) }
+      end.compact
+    else
+      @best_efforts_riegel_data = []
+    end
+
     respond_to do |format|
-      format.html # Regular page load
+      format.html
+
       format.json do
-        render json: {
-          best_riegel_data: @best_riegel_data,
-          avg_riegel_data: @avg_riegel_data,
-          worst_riegel_data: @worst_riegel_data,
-          exponent: @exponent
-        }
+        if params[:be_exponent] && params[:reference_distance]
+          exponent = params[:be_exponent].to_f
+          ref_distance_km = params[:reference_distance].to_f
+          ref_distance_m = ref_distance_km * 1000
+          ref_effort = AllTimeBestEffort.where("ABS(distance_meters - ?) < 1", ref_distance_m).first
+
+          if ref_effort
+            d1 = ref_effort.distance_meters / 1000.0
+            t1 = ref_effort.pace_min_per_km * d1
+
+            riegel_data = @best_efforts_chart_data.map do |pt|
+              d2 = pt[:x]
+              t2 = t1 * (d2 / d1)**exponent
+              pace = t2 / d2
+              { x: d2, y: pace.round(2) }
+            end.compact
+
+            render json: { best_efforts_riegel_data: riegel_data }
+          else
+            render json: { best_efforts_riegel_data: [] }
+          end
+        else
+          render json: {
+            best_riegel_data: @best_riegel_data,
+            avg_riegel_data: @avg_riegel_data,
+            worst_riegel_data: @worst_riegel_data,
+            exponent: @exponent
+          }
+        end
       end
     end
   end
+
 
   private
 

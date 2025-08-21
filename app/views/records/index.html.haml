@@ -39,6 +39,25 @@
 %div.chart-container{style: "width: 80%; margin: 20px auto;"}
   %canvas#bestEffortsChart
 
+%div#riegel-controls-best-effort.chart-controls
+  %label Exponent:
+  %div.exponent-controls
+    %button#be-decrease-exponent.exponent-btn −
+    %input#be-riegel-exponent{type: "text", value: "#{'%.2f' % @exponent}", readonly: true}
+    %button#be-increase-exponent.exponent-btn +
+  %br/
+  %label Reference Distance (km):
+  %input#reference-distance-slider{
+    type: "range",
+    min: "0.1",
+    max: "#{@max_best_effort_distance.round(1)}",
+    step: "0.1",
+    value: "5.0"
+  }
+  %br/
+  %span#reference-distance-label 5.0 km
+
+
 :ruby
   chart_datasets = [
     {
@@ -73,18 +92,27 @@
 
 = render 'shared/pace_chart_script', chart_id: 'recordsChart', chart_title: 'Personal Best Pace by Distance', datasets: chart_datasets
 
-- best_efforts_chart_data = [{label: 'Best Efforts Pace by Distance', data: @best_efforts_chart_data, color: '#09954f', showPoints: false, borderWidth: 3}]
+- best_efforts_chart_data = [{ label: 'Best Efforts Pace by Distance', data: @best_efforts_chart_data, color: '#09954f', showPoints: false, borderWidth: 3 }, { label: 'Riegel Curve', data: @best_efforts_riegel_data, color: 'lightgrey', showPoints: false, borderDash: [5,5], borderWidth: 2 }]
 = render 'shared/pace_chart_script', chart_id: 'bestEffortsChart', chart_title: 'Best Efforts Pace by Distance', datasets: best_efforts_chart_data
+
 -# - Rails.logger.info "== Chart Data for Best Efforts == #{@best_efforts_chart_data.inspect}"
 
 :javascript
-  document.addEventListener('DOMContentLoaded', function() {
+  document.addEventListener('DOMContentLoaded', function () {
     const exponentInput = document.getElementById('riegel-exponent');
     const decreaseBtn = document.getElementById('decrease-exponent');
     const increaseBtn = document.getElementById('increase-exponent');
     const chartName = 'recordsChart';
 
-    // Helper function to convert pace to speed
+    function debounce(func, delay) {
+      let timer;
+      return function (...args) {
+        clearTimeout(timer);
+        timer = setTimeout(() => func.apply(this, args), delay);
+      };
+    }
+
+
     function paceToSpeed(pace) {
       return 60 / pace;
     }
@@ -92,26 +120,19 @@
     function isChartInPaceMode() {
       const chart = Chart.getChart(chartName);
       if (chart) {
-        // Check the y-axis title or check the first data point
-        // If y values are typically > 10, it's likely speed (km/h)
-        // If y values are typically < 10, it's likely pace (min/km)
         const firstDataPoint = chart.data.datasets[0].data[0];
         if (firstDataPoint && firstDataPoint.y) {
-          return firstDataPoint.y < 10; // Pace values are usually < 10, speed values > 10
+          return firstDataPoint.y < 10;
         }
       }
-      return true; // default to pace mode
+      return true;
     }
 
     function updateChart(exponent) {
-      // Update the input field
       exponentInput.value = exponent.toFixed(2);
-
-      // Update button states
       decreaseBtn.disabled = exponent <= 1.03;
       increaseBtn.disabled = exponent >= 1.15;
 
-      // Make AJAX request to get new Riegel data
       fetch(`#{request.path}?exponent=${exponent}`, {
         headers: {
           'Accept': 'application/json',
@@ -120,14 +141,11 @@
       })
       .then(response => response.json())
       .then(data => {
-        // Update the chart with new data
         const chart = Chart.getChart(chartName);
         if (chart) {
-          // Update only the Riegel lines (indices 1, 2, 3)
           let processedBest, processedAvg, processedWorst;
 
           if (!isChartInPaceMode()) {
-            // Convert to speed
             processedBest = data.best_riegel_data.map(point => ({
               x: point.x,
               y: paceToSpeed(point.y),
@@ -147,7 +165,6 @@
               originalPace: point.y
             }));
           } else {
-            // Keep as pace but ensure originalPace property exists
             processedBest = data.best_riegel_data.map(point => ({
               x: point.x,
               y: point.y,
@@ -178,7 +195,7 @@
       });
     }
 
-    decreaseBtn.addEventListener('click', function() {
+    decreaseBtn.addEventListener('click', () => {
       const currentValue = parseFloat(exponentInput.value);
       if (currentValue > 1.03) {
         const newValue = Math.max(1.03, currentValue - 0.01);
@@ -186,7 +203,7 @@
       }
     });
 
-    increaseBtn.addEventListener('click', function() {
+    increaseBtn.addEventListener('click', () => {
       const currentValue = parseFloat(exponentInput.value);
       if (currentValue < 1.15) {
         const newValue = Math.min(1.15, currentValue + 0.01);
@@ -194,8 +211,70 @@
       }
     });
 
-    // Set initial button states
     const initialValue = parseFloat(exponentInput.value);
     decreaseBtn.disabled = initialValue <= 1.03;
     increaseBtn.disabled = initialValue >= 1.15;
+
+    // ==================== BEST EFFORTS CHART ====================
+    const beExponentInput = document.getElementById('be-riegel-exponent');
+    const beDecreaseBtn = document.getElementById('be-decrease-exponent');
+    const beIncreaseBtn = document.getElementById('be-increase-exponent');
+    const distanceSlider = document.getElementById('reference-distance-slider');
+    const distanceLabel = document.getElementById('reference-distance-label');
+    const beChartName = 'bestEffortsChart';
+
+    function updateBestEffortsChart(exponent, distance) {
+      beExponentInput.value = exponent.toFixed(2);
+      distanceLabel.textContent = `${distance.toFixed(1)} km`;
+      beDecreaseBtn.disabled = exponent <= 1.03;
+      beIncreaseBtn.disabled = exponent >= 1.15;
+
+      fetch(`#{request.path}?be_exponent=${exponent}&reference_distance=${distance}`, {
+        headers: {
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        const chart = Chart.getChart(beChartName);
+        if (chart) {
+          const riegelData = data.best_efforts_riegel_data.map(pt => ({
+            x: pt.x,
+            y: pt.y,
+            label: pt.label
+          }));
+          chart.data.datasets[1].data = riegelData;
+          chart.update();
+        }
+      })
+      .catch(err => console.error('Error updating best efforts chart:', err));
+    }
+
+    const debouncedUpdateBestEffortsChart = debounce(updateBestEffortsChart, 150);
+
+    distanceSlider.addEventListener('input', () => {
+      const value = parseFloat(distanceSlider.value).toFixed(1);
+      distanceLabel.textContent = `${value} km`;
+      const exponent = parseFloat(beExponentInput.value);
+      debouncedUpdateBestEffortsChart(exponent, parseFloat(value));
+    });
+
+    beIncreaseBtn.addEventListener('click', () => {
+      const currentValue = parseFloat(beExponentInput.value);
+      if (currentValue < 1.15) {
+        const newValue = currentValue + 0.01;
+        beExponentInput.value = newValue.toFixed(2);
+        updateBestEffortsChart(newValue, parseFloat(distanceSlider.value));
+      }
+    });
+
+    beDecreaseBtn.addEventListener('click', () => {
+      const currentValue = parseFloat(beExponentInput.value);
+      if (currentValue > 1.03) {
+        const newValue = currentValue - 0.01;
+        beExponentInput.value = newValue.toFixed(2);
+        updateBestEffortsChart(newValue, parseFloat(distanceSlider.value));
+      }
+    });
   });
