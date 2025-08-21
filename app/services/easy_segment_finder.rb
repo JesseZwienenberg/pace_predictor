@@ -62,6 +62,28 @@ class EasySegmentFinder
   end
   
   private
+
+  def check_rate_limits
+    # The strava-ruby-client might not expose last_response
+    # We'll handle this gracefully
+    begin
+      if @client.respond_to?(:last_response) && @client.last_response
+        headers = @client.last_response.headers
+        fifteen_min = "#{headers['x-ratelimit-usage']}/#{headers['x-ratelimit-limit']}"
+        daily = "#{headers['x-readratelimit-usage']}/#{headers['x-readratelimit-limit']}"
+        
+        Rails.logger.info "Strava Rate Limits - 15min: #{fifteen_min}, Daily: #{daily}"
+        
+        # Warn if getting close to limits
+        if headers['x-ratelimit-usage'].to_i > headers['x-ratelimit-limit'].to_i * 0.8
+          Rails.logger.warn "WARNING: Approaching 15-minute rate limit!"
+        end
+      end
+    rescue => e
+      # Silently skip if we can't check rate limits
+      Rails.logger.debug "Could not check rate limits: #{e.message}"
+    end
+  end
   
   def fetch_segments_in_grid(center_lat, center_lng, radius_km)
     segments = {}
@@ -103,11 +125,31 @@ class EasySegmentFinder
     offset = radius_km / 111.0
     lng_offset = radius_km / (111.0 * Math.cos(lat * Math::PI / 180))
     
+    retries = 0
     begin
-      @client.explore_segments(
+      segments = @client.explore_segments(
         bounds: [lat - offset, lng - lng_offset, lat + offset, lng + lng_offset],
         activity_type: 'running'
       )
+      
+      # Try to check rate limits but don't fail if we can't
+      check_rate_limits
+      
+      segments
+    rescue Strava::Errors::Fault => e
+      if e.http_status == 500 && retries < 3
+        retries += 1
+        wait_time = 2 ** retries  # 2, 4, 8 seconds
+        Rails.logger.warn "Strava 500 error, retry #{retries}/3 in #{wait_time}s..."
+        sleep(wait_time)
+        retry
+      elsif e.http_status == 429
+        Rails.logger.error "Rate limited! #{e.message}"
+        []
+      else
+        Rails.logger.error "Strava API error: #{e.message} (HTTP #{e.http_status})"
+        []
+      end
     rescue => e
       Rails.logger.error "Error exploring segments: #{e.message}"
       []
@@ -152,74 +194,117 @@ class EasySegmentFinder
     require 'net/http'
     require 'json'
     
-    # Use the segments/:id endpoint which includes leaderboard data
-    uri = URI("https://www.strava.com/api/v3/segments/#{segment_id}")
-    http = Net::HTTP.new(uri.host, uri.port)
-    http.use_ssl = true
-    
-    request = Net::HTTP::Get.new(uri)
-    request['Authorization'] = "Bearer #{@access_token}"
-    
-    response = http.request(request)
-    
-    if response.code == '200'
-      data = JSON.parse(response.body)
+    retries = 0
+    begin
+      uri = URI("https://www.strava.com/api/v3/segments/#{segment_id}")
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.use_ssl = true
       
-      # Check different possible locations for KOM time
-      kom_time = nil
+      request = Net::HTTP::Get.new(uri)
+      request['Authorization'] = "Bearer #{@access_token}"
       
-      if data['xoms'] && data['xoms']['kom']
-        raw_kom = data['xoms']['kom']
-        kom_time = parse_time_string(raw_kom)
-      elsif data['xoms'] && data['xoms']['overall']  
-        raw_kom = data['xoms']['overall']
-        kom_time = parse_time_string(raw_kom)
+      response = http.request(request)
+      
+      # Log rate limit headers from direct API calls too
+      if response['x-ratelimit-usage']
+        Rails.logger.info "Rate limits - 15min: #{response['x-ratelimit-usage']}/#{response['x-ratelimit-limit']}"
       end
       
-      if (!kom_time || kom_time == 0) && data['effort_count'] && data['effort_count'] > 0
-        Rails.logger.info "No KOM in segment data, fetching efforts for #{segment_name}"
-        # If no KOM in main data, try fetching efforts separately
-        kom_time = fetch_kom_time(segment_id)
+      if response.code == '200'
+        data = JSON.parse(response.body)
+        
+        # Check different possible locations for KOM time
+        kom_time = nil
+        
+        if data['xoms'] && data['xoms']['kom']
+          raw_kom = data['xoms']['kom']
+          kom_time = parse_time_string(raw_kom)
+        elsif data['xoms'] && data['xoms']['overall']  
+          raw_kom = data['xoms']['overall']
+          kom_time = parse_time_string(raw_kom)
+        end
+        
+        if (!kom_time || kom_time == 0) && data['effort_count'] && data['effort_count'] > 0
+          Rails.logger.info "No KOM in segment data, fetching efforts for #{segment_name}"
+          # If no KOM in main data, try fetching efforts separately
+          kom_time = fetch_kom_time(segment_id)
+        end
+        
+        kom_time
+        
+      elsif response.code == '500'
+        # Raise an exception to trigger the retry logic in rescue block
+        raise Net::HTTPServerError.new("Server error", response)
+        
+      elsif response.code == '429'
+        Rails.logger.error "Rate limited on segment #{segment_id}!"
+        nil
+      else
+        Rails.logger.error "Failed to fetch segment #{segment_id}: #{response.code}"
+        nil
       end
       
-      kom_time
-    else
-      Rails.logger.error "Failed to fetch segment #{segment_id}: #{response.code}"
+    rescue Net::HTTPServerError => e
+      if retries < 3
+        retries += 1
+        Rails.logger.warn "Strava 500 error for segment #{segment_id}, retry #{retries}/3..."
+        sleep(2 ** retries)
+        retry
+      else
+        Rails.logger.error "Failed after 3 retries for segment #{segment_id}"
+        nil
+      end
+    rescue => e
+      Rails.logger.error "Error fetching segment: #{e.message}"
       nil
     end
-  rescue => e
-    Rails.logger.error "Error fetching segment: #{e.message}"
-    nil
   end
   
   def fetch_kom_time(segment_id)
     require 'net/http'
     require 'json'
     
-    uri = URI("https://www.strava.com/api/v3/segment_efforts?segment_id=#{segment_id}&per_page=200")
-    http = Net::HTTP.new(uri.host, uri.port)
-    http.use_ssl = true
-    
-    request = Net::HTTP::Get.new(uri)
-    request['Authorization'] = "Bearer #{@access_token}"
-    
-    response = http.request(request)
-    
-    if response.code == '200'
-      data = JSON.parse(response.body)
-      if data.any?
-        # Get the fastest time from all efforts
-        fastest = data.min_by { |effort| effort['elapsed_time'].to_i }
-        time = fastest['elapsed_time'].to_i if fastest
-        Rails.logger.info "Fastest effort time: #{time}s from #{data.length} efforts"
-        time
+    retries = 0
+    begin
+      uri = URI("https://www.strava.com/api/v3/segment_efforts?segment_id=#{segment_id}&per_page=200")
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.use_ssl = true
+      
+      request = Net::HTTP::Get.new(uri)
+      request['Authorization'] = "Bearer #{@access_token}"
+      
+      response = http.request(request)
+      
+      if response.code == '200'
+        data = JSON.parse(response.body)
+        if data.any?
+          # Get the fastest time from all efforts
+          fastest = data.min_by { |effort| effort['elapsed_time'].to_i }
+          time = fastest['elapsed_time'].to_i if fastest
+          Rails.logger.info "Fastest effort time: #{time}s from #{data.length} efforts"
+          time
+        else
+          nil
+        end
+      elsif response.code == '500'
+        raise Net::HTTPServerError.new("Server error", response)
+      else
+        Rails.logger.warn "Failed to fetch efforts: #{response.code}"
+        nil
       end
-    else
-      Rails.logger.warn "Failed to fetch efforts: #{response.code}"
+    rescue Net::HTTPServerError => e
+      if retries < 3
+        retries += 1
+        Rails.logger.warn "Strava 500 error fetching efforts, retry #{retries}/3..."
+        sleep(2 ** retries)
+        retry
+      else
+        Rails.logger.error "Failed after 3 retries"
+        nil
+      end
+    rescue => e
+      Rails.logger.error "Error fetching efforts: #{e.message}"
       nil
     end
-  rescue => e
-    Rails.logger.error "Error fetching efforts: #{e.message}"
-    nil
   end
 end

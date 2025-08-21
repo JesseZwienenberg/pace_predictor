@@ -1,7 +1,7 @@
--# app/views/segments/search.html.haml
+- lat, lng = [[52.238323, 6.100701], [52.1567, 6.7389]].sample
 = form_with url: easy_targets_segments_path, method: :get do |f|
-  = f.number_field :lat, step: :any, placeholder: "Latitude", value: 52.238323
-  = f.number_field :lng, step: :any, placeholder: "Longitude", value: 6.100701
+  = f.number_field :lat, step: :any, placeholder: "Latitude", value: lat
+  = f.number_field :lng, step: :any, placeholder: "Longitude", value: lng
   = f.number_field :radius, placeholder: "Radius (km)", value: 5
   = f.number_field :max_distance, placeholder: "Max segment (m)", value: 3000
   = f.number_field :max_pace, step: 0.1, placeholder: "Max pace (min/km)"
