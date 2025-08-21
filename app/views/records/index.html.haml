@@ -117,12 +117,12 @@
       return 60 / pace;
     }
 
-    function isChartInPaceMode() {
-      const chart = Chart.getChart(chartName);
+    function isChartInPaceMode(chartId) {
+      const chart = Chart.getChart(chartId);
       if (chart) {
-        const firstDataPoint = chart.data.datasets[0].data[0];
-        if (firstDataPoint && firstDataPoint.y) {
-          return firstDataPoint.y < 10;
+        const firstPoint = chart.data.datasets[0].data[0];
+        if (firstPoint && typeof firstPoint.y === 'number') {
+          return firstPoint.y < 10;
         }
       }
       return true;
@@ -145,7 +145,7 @@
         if (chart) {
           let processedBest, processedAvg, processedWorst;
 
-          if (!isChartInPaceMode()) {
+          if (!isChartInPaceMode(chartName)) {
             processedBest = data.best_riegel_data.map(point => ({
               x: point.x,
               y: paceToSpeed(point.y),
@@ -241,7 +241,7 @@
         if (chart) {
           const riegelData = data.best_efforts_riegel_data.map(pt => ({
             x: pt.x,
-            y: pt.y,
+            y: isChartInPaceMode(beChartName) ? pt.y : paceToSpeed(pt.y),
             label: pt.label
           }));
           chart.data.datasets[1].data = riegelData;
