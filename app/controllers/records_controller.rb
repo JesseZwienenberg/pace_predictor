@@ -12,14 +12,10 @@ class RecordsController < ApplicationController
     ref_distance_m = ref_distance_km * 1000
     ref_effort = AllTimeBestEffort.where("ABS(distance_meters - ?) < 1", ref_distance_m).first
 
-    Rails.logger.info "=========== Riegel REF: distance_m=#{ref_effort&.distance_meters} pace=#{ref_effort&.pace_min_per_km} from requested #{ref_distance_km}"
-
 
     if ref_effort
       d1 = ref_effort.distance_meters / 1000.0
       t1 = ref_effort.pace_min_per_km * d1
-
-      Rails.logger.info "=========== Riegel REF (HTML): distance_km=#{d1} total_time_min=#{t1.round(2)}"
 
       @best_efforts_riegel_data = @best_efforts_chart_data.map do |pt|
         d2 = pt[:x]
