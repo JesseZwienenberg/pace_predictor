@@ -223,6 +223,7 @@
     const distanceLabel = document.getElementById('reference-distance-label');
     const beChartName = 'bestEffortsChart';
 
+
     function updateBestEffortsChart(exponent, distance) {
       beExponentInput.value = exponent.toFixed(2);
       distanceLabel.textContent = `${distance.toFixed(1)} km`;
@@ -250,6 +251,14 @@
       })
       .catch(err => console.error('Error updating best efforts chart:', err));
     }
+
+    function refreshBestEffortsChartFromUI() {
+      const exponent = parseFloat(beExponentInput.value);
+      const distance = parseFloat(distanceSlider.value);
+      updateBestEffortsChart(exponent, distance);
+    }
+
+    window.updateBestEffortsChart = updateBestEffortsChart;
 
     const debouncedUpdateBestEffortsChart = debounce(updateBestEffortsChart, 150);
 

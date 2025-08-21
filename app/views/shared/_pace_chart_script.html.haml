@@ -25,6 +25,18 @@
 
     function initializeChart() {
 
+    if ('#{chart_id}' === 'bestEffortsChart') {
+      window.refreshBestEffortsChartFromUI = function() {
+        const exponentInput = document.getElementById('be-riegel-exponent');
+        const slider = document.getElementById('reference-distance-slider');
+        if (exponentInput && slider && typeof updateBestEffortsChart === 'function') {
+          const exponent = parseFloat(exponentInput.value);
+          const distance = parseFloat(slider.value);
+          updateBestEffortsChart(exponent, distance);
+        }
+      };
+    }
+
     const canvas_context = '2d';
     const ctx = canvas.getContext(canvas_context);
     const datasets = #{datasets.to_json.html_safe};
@@ -189,6 +201,9 @@
 
         isPaceMode = !isPaceMode;
         updateChartUnits();
+        if (typeof refreshBestEffortsChartFromUI === 'function') {
+          refreshBestEffortsChartFromUI();
+        }
       }
     });
 
