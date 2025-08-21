@@ -1,22 +1,32 @@
 -# app/views/segments/easy_targets.html.haml
+- if @error
+  %p{style: "color: red; font-weight: bold;"}= @error
+  - if @rate_limited
+    %p{style: "color: orange;"}
+      The daily limit resets at midnight UTC.
+      %br
+      Tip: Segments are cached, so searching the same area again won't use API calls.
+
 - if @max_pace.present?
   %p Filtering: KOM pace ≥ #{@max_pace} min/km
 
-%table
-  %thead
-    %tr
-      %th Name
-      %th Distance
-      %th KOM Pace
-      %th Ratio
-      %th Actions
-  %tbody
-    - @segments.each do |seg|
+- if @segments.any?
+  %table
+    %thead
       %tr
-        %td= link_to seg[:name], "https://www.strava.com/segments/#{seg[:id]}", target: "_blank"
-        %td= "#{seg[:distance]}m"
-        %td= "#{format_pace(seg[:kom_pace])} min/km"
-        %td= "#{(seg[:difficulty_ratio] * 100).round}%"
-        %td
-          = form_with url: refresh_kom_segment_path(seg[:id]), method: :post, local: true do
-            = submit_tag "Refresh KOM"
+        %th Name
+        %th Distance
+        %th KOM Pace
+        %th Ratio
+        %th Actions
+    %tbody
+      - @segments.each do |seg|
+        %tr
+          %td= link_to seg[:name], "https://www.strava.com/segments/#{seg[:id]}", target: "_blank"
+          %td= "#{seg[:distance]}m"
+          %td= "#{format_pace(seg[:kom_pace])} min/km"
+          %td= "#{(seg[:difficulty_ratio] * 100).round}%"
+          %td
+            = button_to "Refresh KOM", refresh_kom_segment_path(seg[:id]), method: :post
+- elsif !@error
+  %p No segments found matching your criteria.

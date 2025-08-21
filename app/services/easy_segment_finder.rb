@@ -3,10 +3,16 @@ class EasySegmentFinder
   def initialize(access_token)
     @client = Strava::Api::Client.new(access_token: access_token)
     @access_token = access_token
+    @rate_limited = false
   end
   
   def find(lat, lng, max_radius_km, max_segment_distance_m = 5000, max_pace_min_km = nil)
     all_segments = fetch_segments_in_grid(lat, lng, max_radius_km)
+    
+    # Check if we got rate limited during segment fetching
+    if @rate_limited
+      raise "Rate limited! Daily limit exceeded. Please wait until tomorrow to search again."
+    end
     
     Rails.logger.info "Found #{all_segments.count} total segments to check"
     
@@ -133,15 +139,23 @@ class EasySegmentFinder
         sleep(2 ** retries)
         retry
       elsif e.http_status == 429
-        Rails.logger.error "Rate limited! #{e.message}"
+        @rate_limited = true
+        Rails.logger.error "Rate limited! Daily or 15-minute limit exceeded"
         []
       else
-        Rails.logger.error "Strava API error: #{e.message}"
+        Rails.logger.error "Strava API error: #{e.message rescue e.inspect}"
         []
       end
     rescue => e
-      Rails.logger.error "Error exploring segments: #{e.message}"
-      []
+      # Check if it's a rate limit error
+      if e.class.name.include?('RatelimitError')
+        @rate_limited = true
+        Rails.logger.error "Rate limited! Daily or 15-minute limit exceeded"
+        []
+      else
+        Rails.logger.error "Error exploring segments: #{e.message rescue e.inspect}"
+        []
+      end
     end
   end
   
@@ -209,7 +223,8 @@ class EasySegmentFinder
         kom_time
         
       elsif response.code == '500'
-        raise Net::HTTPServerError.new("Server error", response)
+        Rails.logger.warn "Strava 500 error for segment #{segment_id}, skipping"
+        nil  # Just return nil instead of retrying
       elsif response.code == '429'
         Rails.logger.error "Rate limited!"
         nil
@@ -218,17 +233,8 @@ class EasySegmentFinder
         nil
       end
       
-    rescue Net::HTTPServerError => e
-      if retries < 3
-        retries += 1
-        sleep(2 ** retries)
-        retry
-      else
-        Rails.logger.error "Failed after 3 retries"
-        nil
-      end
     rescue => e
-      Rails.logger.error "Error fetching segment: #{e.message}"
+      Rails.logger.error "Error fetching segment #{segment_id}: #{e.message}"
       nil
     end
   end
@@ -237,7 +243,6 @@ class EasySegmentFinder
     require 'net/http'
     require 'json'
     
-    retries = 0
     begin
       uri = URI("https://www.strava.com/api/v3/segment_efforts?segment_id=#{segment_id}&per_page=200")
       http = Net::HTTP.new(uri.host, uri.port)
@@ -257,17 +262,8 @@ class EasySegmentFinder
         else
           nil
         end
-      elsif response.code == '500'
-        raise Net::HTTPServerError.new("Server error", response)
       else
-        nil
-      end
-    rescue Net::HTTPServerError => e
-      if retries < 3
-        retries += 1
-        sleep(2 ** retries)
-        retry
-      else
+        Rails.logger.warn "Failed to fetch efforts for segment #{segment_id}: #{response.code}"
         nil
       end
     rescue => e
