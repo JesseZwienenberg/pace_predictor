@@ -4,7 +4,8 @@
 
 %h1 Your Running Activities
 
-= button_to "Import All Speed Streams", bulk_import_speed_streams_activities_path, method: :post, class: "btn btn-primary"
+- if @has_empty_speed_stream
+  = button_to "Import All Speed Streams", bulk_import_speed_streams_activities_path, method: :post, class: "btn btn-primary"
 
 - if @filter_description
   .filter-notice

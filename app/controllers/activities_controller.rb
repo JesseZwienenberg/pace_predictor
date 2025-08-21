@@ -20,6 +20,8 @@ class ActivitiesController < ApplicationController
     # Apply filters based on parameters
     @activities = apply_filters(@activities)
     
+    @has_empty_speed_stream = @activities.any? { |activity| activity.speed_stream.blank? }
+
     @total_distance = apply_filters(Activity).sum(:distance) / 1000.0
     @total_time = apply_filters(Activity).sum(:duration)
     @filter_description = build_filter_description
