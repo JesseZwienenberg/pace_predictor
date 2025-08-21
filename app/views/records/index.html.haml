@@ -195,6 +195,13 @@
       });
     }
 
+    window.updateChart = updateChart;
+
+    window.refreshRecordsChartFromUI = function() {
+      const exp = parseFloat(document.getElementById('riegel-exponent').value);
+      updateChart(exp);
+    };
+
     decreaseBtn.addEventListener('click', () => {
       const currentValue = parseFloat(exponentInput.value);
       if (currentValue > 1.03) {

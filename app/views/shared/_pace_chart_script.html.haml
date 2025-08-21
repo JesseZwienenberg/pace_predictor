@@ -25,6 +25,17 @@
 
     function initializeChart() {
 
+    if ('#{chart_id}' === 'recordsChart') {
+      window.refreshRecordsChartFromUI = function() {
+        const input = document.getElementById('riegel-exponent');
+        if (input && typeof updateChart === 'function') {
+          const exponent = parseFloat(input.value);
+          updateChart(exponent);
+        }
+      };
+    }
+
+
     if ('#{chart_id}' === 'bestEffortsChart') {
       window.refreshBestEffortsChartFromUI = function() {
         const exponentInput = document.getElementById('be-riegel-exponent');
@@ -204,6 +215,10 @@
         if (typeof refreshBestEffortsChartFromUI === 'function') {
           refreshBestEffortsChartFromUI();
         }
+        if (typeof refreshRecordsChartFromUI === 'function') {
+          refreshRecordsChartFromUI();
+        }
+
       }
     });
 
