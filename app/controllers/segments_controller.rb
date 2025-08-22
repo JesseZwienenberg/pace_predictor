@@ -6,15 +6,61 @@ class SegmentsController < ApplicationController
   
   def easy_targets
     begin
-      finder = EasySegmentFinder.new(session[:strava_access_token])
+      lat = params[:lat].to_f
+      lng = params[:lng].to_f
+      radius = params[:radius].to_f || 5
+      max_distance = params[:max_distance].to_i || 3000
+      max_pace = params[:max_pace].to_f if params[:max_pace].present?
       
-      @segments = finder.find(
-        params[:lat].to_f,
-        params[:lng].to_f,
-        params[:radius].to_f || 5,
-        params[:max_distance].to_i || 3000,
-        params[:max_pace].to_f
-      )
+      # First, try to use cached segments with coordinates for this location
+      cached_segments_with_coords = CachedSegment.near_location(lat, lng, radius)
+                                                .with_filters(max_distance_m: max_distance, max_pace_min_km: max_pace)
+                                                .where('kom_time > 0')
+      
+      # If we're just sorting (have sort params), try to use cached segments for this location
+      # This prevents API calls when just changing sort order
+      if params[:sort].present? && cached_segments_with_coords.exists?
+        Rails.logger.info "🔄 Sorting request detected - using cached segments for location #{lat}, #{lng} to avoid API calls"
+        
+        @segments = cached_segments_with_coords.map do |seg|
+          ratio = seg.difficulty_ratio
+          next if !ratio || ratio <= 0
+          
+          {
+            id: seg.strava_id,
+            name: seg.name,
+            distance: seg.distance,
+            kom_time: seg.kom_time,
+            kom_pace: seg.kom_pace,
+            difficulty_ratio: ratio
+          }
+        end.compact
+        
+      elsif cached_segments_with_coords.exists?
+        Rails.logger.info "Using cached segments with coordinates for location #{lat}, #{lng} (found #{cached_segments_with_coords.count})"
+        
+        # Convert to the format expected by the view
+        @segments = cached_segments_with_coords.map do |seg|
+          ratio = seg.difficulty_ratio
+          next if !ratio || ratio <= 0
+          
+          {
+            id: seg.strava_id,
+            name: seg.name,
+            distance: seg.distance,
+            kom_time: seg.kom_time,
+            kom_pace: seg.kom_pace,
+            difficulty_ratio: ratio
+          }
+        end.compact
+      else
+        Rails.logger.info "No cached segments found, using API for location #{lat}, #{lng}"
+        
+        # Fall back to API search for new areas
+        finder = EasySegmentFinder.new(session[:strava_access_token])
+        
+        @segments = finder.find(lat, lng, radius, max_distance, max_pace)
+      end
       
       # Apply sorting
       sort_column = params[:sort] || 'name'
@@ -44,6 +90,24 @@ class SegmentsController < ApplicationController
   end
 
   private
+
+  def haversine_distance(lat1, lng1, lat2, lng2)
+    # Calculate distance between two points using Haversine formula
+    r = 6371 # Earth's radius in kilometers
+    
+    lat1_rad = lat1 * Math::PI / 180
+    lat2_rad = lat2 * Math::PI / 180
+    delta_lat = (lat2 - lat1) * Math::PI / 180
+    delta_lng = (lng2 - lng1) * Math::PI / 180
+    
+    a = Math.sin(delta_lat / 2) * Math.sin(delta_lat / 2) +
+        Math.cos(lat1_rad) * Math.cos(lat2_rad) *
+        Math.sin(delta_lng / 2) * Math.sin(delta_lng / 2)
+    
+    c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+    
+    r * c
+  end
 
   def sort_segments(segments, sort_column, sort_direction)
     sorted = case sort_column

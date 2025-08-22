@@ -53,7 +53,9 @@ class EasySegmentFinder
             strava_id: seg.id,
             name: seg.name,
             distance: seg.distance,
-            kom_time: kom_time
+            kom_time: kom_time,
+            start_latitude: seg.start_latlng&.first,
+            start_longitude: seg.start_latlng&.last
           )
           Rails.logger.info "Cached new segment: #{seg.name}"
         end
@@ -98,7 +100,9 @@ class EasySegmentFinder
           strava_id: segment_id,
           name: seg.name,
           distance: seg.distance,
-          kom_time: kom_time
+          kom_time: kom_time,
+          start_latitude: seg.start_latlng&.first,
+          start_longitude: seg.start_latlng&.last
         )
       end
     end
