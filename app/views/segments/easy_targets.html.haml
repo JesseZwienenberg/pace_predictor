@@ -14,10 +14,10 @@
   %table
     %thead
       %tr
-        %th Name
-        %th Distance
-        %th KOM Pace
-        %th Ratio
+        %th= sortable_link('name', 'Name')
+        %th= sortable_link('distance', 'Distance')
+        %th= sortable_link('kom_pace', 'KOM Pace')
+        %th= sortable_link('ratio', 'Ratio')
         %th Actions
     %tbody
       - @segments.each do |seg|

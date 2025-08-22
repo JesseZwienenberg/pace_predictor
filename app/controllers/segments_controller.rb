@@ -16,6 +16,11 @@ class SegmentsController < ApplicationController
         params[:max_pace].to_f
       )
       
+      # Apply sorting
+      sort_column = params[:sort] || 'name'
+      sort_direction = params[:direction] || 'asc'
+      @segments = sort_segments(@segments, sort_column, sort_direction)
+      
       @max_pace = params[:max_pace]
     rescue => e
       Rails.logger.error "Error in easy_targets: #{e.message}"
@@ -36,5 +41,24 @@ class SegmentsController < ApplicationController
     kom_time = finder.refresh_segment(params[:id])
     
     redirect_back(fallback_location: root_path, notice: "KOM updated: #{kom_time}s")
+  end
+
+  private
+
+  def sort_segments(segments, sort_column, sort_direction)
+    sorted = case sort_column
+    when 'name'
+      segments.sort_by { |seg| seg[:name].downcase }
+    when 'distance'
+      segments.sort_by { |seg| seg[:distance] }
+    when 'kom_pace'
+      segments.sort_by { |seg| seg[:kom_pace] }
+    when 'ratio'
+      segments.sort_by { |seg| seg[:difficulty_ratio] }
+    else
+      segments.sort_by { |seg| seg[:name].downcase }
+    end
+
+    sort_direction == 'desc' ? sorted.reverse : sorted
   end
 end
