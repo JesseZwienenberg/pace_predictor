@@ -12,13 +12,13 @@ class SegmentsController < ApplicationController
       max_distance = params[:max_distance].to_i || 3000
       max_pace = params[:max_pace].to_f if params[:max_pace].present?
       
-      # First, try to use cached segments with coordinates for this location
+      # Check if we have adequate cached coverage for this search
+      # Only use cached segments if we're sorting OR if we have recent comprehensive coverage
       cached_segments_with_coords = CachedSegment.near_location(lat, lng, radius)
                                                 .with_filters(max_distance_m: max_distance, max_pace_min_km: max_pace)
                                                 .where('kom_time > 0')
       
-      # If we're just sorting (have sort params), try to use cached segments for this location
-      # This prevents API calls when just changing sort order
+      # If we're just sorting (have sort params), use cached segments to avoid API calls
       if params[:sort].present? && cached_segments_with_coords.exists?
         Rails.logger.info "🔄 Sorting request detected - using cached segments for location #{lat}, #{lng} to avoid API calls"
         
@@ -36,8 +36,8 @@ class SegmentsController < ApplicationController
           }
         end.compact
         
-      elsif cached_segments_with_coords.exists?
-        Rails.logger.info "Using cached segments with coordinates for location #{lat}, #{lng} (found #{cached_segments_with_coords.count})"
+      elsif should_use_cached_segments?(lat, lng, radius) && cached_segments_with_coords.exists?
+        Rails.logger.info "Using cached segments for location #{lat}, #{lng} radius #{radius}km (found #{cached_segments_with_coords.count})"
         
         # Convert to the format expected by the view
         @segments = cached_segments_with_coords.map do |seg|
@@ -63,8 +63,8 @@ class SegmentsController < ApplicationController
       end
       
       # Apply sorting
-      sort_column = params[:sort] || 'name'
-      sort_direction = params[:direction] || 'asc'
+      sort_column = params[:sort] || 'ratio'
+      sort_direction = params[:direction] || 'desc'
       @segments = sort_segments(@segments, sort_column, sort_direction)
       
       @max_pace = params[:max_pace]
@@ -90,6 +90,13 @@ class SegmentsController < ApplicationController
   end
 
   private
+
+  def should_use_cached_segments?(lat, lng, radius)
+    # For now, be conservative and always use API for new searches
+    # This ensures we get comprehensive coverage for each search
+    # Only sorting operations will use cached segments
+    false
+  end
 
   def haversine_distance(lat1, lng1, lat2, lng2)
     # Calculate distance between two points using Haversine formula
