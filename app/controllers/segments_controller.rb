@@ -5,12 +5,13 @@ class SegmentsController < ApplicationController
   end
   
   def easy_targets
+    lat = params[:lat].to_f
+    lng = params[:lng].to_f
+    radius = params[:radius].to_f || 5
+    max_distance = params[:max_distance].to_i || 3000
+    max_pace = params[:max_pace].to_f if params[:max_pace].present?
+
     begin
-      lat = params[:lat].to_f
-      lng = params[:lng].to_f
-      radius = params[:radius].to_f || 5
-      max_distance = params[:max_distance].to_i || 3000
-      max_pace = params[:max_pace].to_f if params[:max_pace].present?
       
       # Check if we have adequate cached coverage for this search
       # Only use cached segments if we're sorting OR if we have recent comprehensive coverage
@@ -71,14 +72,47 @@ class SegmentsController < ApplicationController
     rescue => e
       Rails.logger.error "Error in easy_targets: #{e.message}"
       Rails.logger.error e.backtrace.first(10).join("\n")
-      @segments = []
       
       if e.message.include?("Rate limited")
         @error = "Rate limit exceeded! You've used your daily API quota. Please wait until tomorrow to search again."
         @rate_limited = true
+        
+        # Still show cached segments if available, even when rate limited
+        Rails.logger.info "Rate limited - checking for cached segments in area"
+        cached_segments_with_coords = CachedSegment.near_location(lat, lng, radius)
+                                                  .with_filters(max_distance_m: max_distance, max_pace_min_km: max_pace)
+                                                  .where('kom_time > 0')
+        
+        if cached_segments_with_coords.exists?
+          Rails.logger.info "Found #{cached_segments_with_coords.count} cached segments despite rate limiting"
+          
+          @segments = cached_segments_with_coords.map do |seg|
+            ratio = seg.difficulty_ratio
+            next if !ratio || ratio <= 0
+            
+            {
+              id: seg.strava_id,
+              name: seg.name,
+              distance: seg.distance,
+              kom_time: seg.kom_time,
+              kom_pace: seg.kom_pace,
+              difficulty_ratio: ratio
+            }
+          end.compact
+          
+          # Apply sorting
+          sort_column = params[:sort] || 'ratio'
+          sort_direction = params[:direction] || 'desc'
+          @segments = sort_segments(@segments, sort_column, sort_direction)
+        else
+          @segments = []
+        end
       else
         @error = "An error occurred while searching for segments. Please try again."
+        @segments = []
       end
+      
+      @max_pace = params[:max_pace]
     end
   end
   
