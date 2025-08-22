@@ -9,6 +9,8 @@ class EasySegmentFinder
   end
   
   def find(lat, lng, max_radius_km, max_segment_distance_m = 5000, max_pace_min_km = nil)
+    @search_lat = lat
+    @search_lng = lng
     all_segments = fetch_segments_in_grid(lat, lng, max_radius_km)
     
     # Check if we got rate limited during segment fetching
@@ -71,13 +73,21 @@ class EasySegmentFinder
       ratio = ::SegmentAnalyzer.difficulty_ratio(seg.distance, kom_time)
       next if !ratio
       
+      # Calculate distance from search location
+      distance_from_search = if seg.start_latlng && seg.start_latlng.length == 2
+        haversine_distance(@search_lat, @search_lng, seg.start_latlng[0], seg.start_latlng[1])
+      else
+        nil
+      end
+      
       results << {
         id: seg.id,
         name: seg.name,
         distance: seg.distance,
         kom_time: kom_time,
         kom_pace: kom_pace,
-        difficulty_ratio: ratio
+        difficulty_ratio: ratio,
+        distance_from_search: distance_from_search
       }
     end
     
@@ -398,6 +408,24 @@ class EasySegmentFinder
     @last_request_time = Time.current
   end
   
+  # Helper method to calculate distance between two points
+  def haversine_distance(lat1, lng1, lat2, lng2)
+    r = 6371 # Earth's radius in kilometers
+    
+    lat1_rad = lat1 * Math::PI / 180
+    lat2_rad = lat2 * Math::PI / 180
+    delta_lat = (lat2 - lat1) * Math::PI / 180
+    delta_lng = (lng2 - lng1) * Math::PI / 180
+    
+    a = Math.sin(delta_lat / 2) * Math.sin(delta_lat / 2) +
+        Math.cos(lat1_rad) * Math.cos(lat2_rad) *
+        Math.sin(delta_lng / 2) * Math.sin(delta_lng / 2)
+    
+    c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+    
+    r * c
+  end
+
   # Helper method to log rate limit information
   def log_rate_limit_info(response = nil)
     if response

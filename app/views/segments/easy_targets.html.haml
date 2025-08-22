@@ -18,6 +18,7 @@
         %th= sortable_link('distance', 'Distance')
         %th= sortable_link('kom_pace', 'KOM Pace')
         %th= sortable_link('ratio', 'Ratio')
+        %th= sortable_link('distance_from_search', 'Distance from Search')
         %th Actions
     %tbody
       - @segments.each do |seg|
@@ -26,6 +27,11 @@
           %td= "#{seg[:distance]}m"
           %td= "#{format_pace(seg[:kom_pace])} min/km"
           %td= "#{(seg[:difficulty_ratio] * 100).round}%"
+          %td
+            - if seg[:distance_from_search]
+              = "#{seg[:distance_from_search].round(2)} km"
+            - else
+              %span{style: "color: grey;"} N/A
           %td
             = button_to "Refresh KOM", refresh_kom_segment_path(seg[:id]), method: :post
 - elsif !@error

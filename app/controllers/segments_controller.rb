@@ -27,13 +27,20 @@ class SegmentsController < ApplicationController
           ratio = seg.difficulty_ratio
           next if !ratio || ratio <= 0
           
+          distance_from_search = if seg.start_latitude && seg.start_longitude
+            haversine_distance(lat, lng, seg.start_latitude.to_f, seg.start_longitude.to_f)
+          else
+            nil
+          end
+          
           {
             id: seg.strava_id,
             name: seg.name,
             distance: seg.distance,
             kom_time: seg.kom_time,
             kom_pace: seg.kom_pace,
-            difficulty_ratio: ratio
+            difficulty_ratio: ratio,
+            distance_from_search: distance_from_search
           }
         end.compact
         
@@ -45,13 +52,20 @@ class SegmentsController < ApplicationController
           ratio = seg.difficulty_ratio
           next if !ratio || ratio <= 0
           
+          distance_from_search = if seg.start_latitude && seg.start_longitude
+            haversine_distance(lat, lng, seg.start_latitude.to_f, seg.start_longitude.to_f)
+          else
+            nil
+          end
+          
           {
             id: seg.strava_id,
             name: seg.name,
             distance: seg.distance,
             kom_time: seg.kom_time,
             kom_pace: seg.kom_pace,
-            difficulty_ratio: ratio
+            difficulty_ratio: ratio,
+            distance_from_search: distance_from_search
           }
         end.compact
       else
@@ -90,13 +104,20 @@ class SegmentsController < ApplicationController
             ratio = seg.difficulty_ratio
             next if !ratio || ratio <= 0
             
+            distance_from_search = if seg.start_latitude && seg.start_longitude
+              haversine_distance(lat, lng, seg.start_latitude.to_f, seg.start_longitude.to_f)
+            else
+              nil
+            end
+            
             {
               id: seg.strava_id,
               name: seg.name,
               distance: seg.distance,
               kom_time: seg.kom_time,
               kom_pace: seg.kom_pace,
-              difficulty_ratio: ratio
+              difficulty_ratio: ratio,
+              distance_from_search: distance_from_search
             }
           end.compact
           
@@ -160,6 +181,9 @@ class SegmentsController < ApplicationController
       segments.sort_by { |seg| seg[:kom_pace] }
     when 'ratio'
       segments.sort_by { |seg| seg[:difficulty_ratio] }
+    when 'distance_from_search'
+      # Handle segments without distance_from_search (put them last)
+      segments.sort_by { |seg| seg[:distance_from_search] || Float::INFINITY }
     else
       segments.sort_by { |seg| seg[:name].downcase }
     end
