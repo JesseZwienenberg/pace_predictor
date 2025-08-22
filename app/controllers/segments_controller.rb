@@ -77,6 +77,15 @@ class SegmentsController < ApplicationController
         @segments = finder.find(lat, lng, radius, max_distance, max_pace)
       end
       
+      # Filter out segments that are beyond the specified radius
+      @segments = @segments.select do |seg|
+        if seg[:distance_from_search]
+          seg[:distance_from_search] <= radius
+        else
+          true  # Keep segments without distance info (shouldn't happen with new searches)
+        end
+      end
+      
       # Apply sorting
       sort_column = params[:sort] || 'ratio'
       sort_direction = params[:direction] || 'desc'
@@ -120,6 +129,15 @@ class SegmentsController < ApplicationController
               distance_from_search: distance_from_search
             }
           end.compact
+          
+          # Filter out segments that are beyond the specified radius
+          @segments = @segments.select do |seg|
+            if seg[:distance_from_search]
+              seg[:distance_from_search] <= radius
+            else
+              true
+            end
+          end
           
           # Apply sorting
           sort_column = params[:sort] || 'ratio'
