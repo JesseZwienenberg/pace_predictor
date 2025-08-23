@@ -97,7 +97,7 @@ class SegmentsController < ApplicationController
       Rails.logger.error e.backtrace.first(10).join("\n")
       
       if e.message.include?("Rate limited")
-        @error = "Rate limit exceeded! You've used your daily API quota. Please wait until tomorrow to search again."
+        @error = "Rate limit exceeded! Please wait to search again."
         @rate_limited = true
         
         # Still show cached segments if available, even when rate limited
@@ -147,8 +147,54 @@ class SegmentsController < ApplicationController
           @segments = []
         end
       else
-        @error = "An error occurred while searching for segments. Please try again."
-        @segments = []
+        @error = "An error occurred while searching for segments. Showing cached segments if available."
+        
+        # Still check database for cached segments even on API failures
+        Rails.logger.info "API failed - checking for cached segments in area"
+        cached_segments_with_coords = CachedSegment.near_location(lat, lng, radius)
+                                                  .with_filters(max_distance_m: max_distance, max_pace_min_km: max_pace)
+                                                  .where('kom_time > 0')
+        
+        if cached_segments_with_coords.exists?
+          Rails.logger.info "Found #{cached_segments_with_coords.count} cached segments despite API failure"
+          
+          @segments = cached_segments_with_coords.map do |seg|
+            ratio = seg.difficulty_ratio
+            next if !ratio || ratio <= 0
+            
+            distance_from_search = if seg.start_latitude && seg.start_longitude
+              haversine_distance(lat, lng, seg.start_latitude.to_f, seg.start_longitude.to_f)
+            else
+              nil
+            end
+            
+            {
+              id: seg.strava_id,
+              name: seg.name,
+              distance: seg.distance,
+              kom_time: seg.kom_time,
+              kom_pace: seg.kom_pace,
+              difficulty_ratio: ratio,
+              distance_from_search: distance_from_search
+            }
+          end.compact
+          
+          # Filter out segments that are beyond the specified radius
+          @segments = @segments.select do |seg|
+            if seg[:distance_from_search]
+              seg[:distance_from_search] <= radius
+            else
+              true
+            end
+          end
+          
+          # Apply sorting
+          sort_column = params[:sort] || 'ratio'
+          sort_direction = params[:direction] || 'desc'
+          @segments = sort_segments(@segments, sort_column, sort_direction)
+        else
+          @segments = []
+        end
       end
       
       @max_pace = params[:max_pace]
