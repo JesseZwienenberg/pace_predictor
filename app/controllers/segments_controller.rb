@@ -82,7 +82,27 @@ class SegmentsController < ApplicationController
         # Fall back to API search for new areas
         finder = EasySegmentFinder.new(session[:strava_access_token])
         
-        @segments = finder.find(lat, lng, radius, max_distance, max_pace)
+        api_segments = finder.find(lat, lng, radius, max_distance, max_pace)
+        
+        # Enhance API segments with cached marking information if available
+        @segments = api_segments.map do |seg|
+          cached_seg = CachedSegment.find_by(strava_id: seg[:id])
+          if cached_seg
+            seg.merge({
+              background_color_class: cached_seg.background_color_class,
+              is_done: cached_seg.is_done,
+              is_favorited: cached_seg.is_favorited,
+              is_unavailable: cached_seg.is_unavailable
+            })
+          else
+            seg.merge({
+              background_color_class: '',
+              is_done: false,
+              is_favorited: false,
+              is_unavailable: false
+            })
+          end
+        end
       end
       
       # Filter out segments that are beyond the specified radius
@@ -134,7 +154,11 @@ class SegmentsController < ApplicationController
               kom_time: seg.kom_time,
               kom_pace: seg.kom_pace,
               difficulty_ratio: ratio,
-              distance_from_search: distance_from_search
+              distance_from_search: distance_from_search,
+              background_color_class: seg.background_color_class,
+              is_done: seg.is_done,
+              is_favorited: seg.is_favorited,
+              is_unavailable: seg.is_unavailable
             }
           end.compact
           
@@ -183,7 +207,11 @@ class SegmentsController < ApplicationController
               kom_time: seg.kom_time,
               kom_pace: seg.kom_pace,
               difficulty_ratio: ratio,
-              distance_from_search: distance_from_search
+              distance_from_search: distance_from_search,
+              background_color_class: seg.background_color_class,
+              is_done: seg.is_done,
+              is_favorited: seg.is_favorited,
+              is_unavailable: seg.is_unavailable
             }
           end.compact
           
