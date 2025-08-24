@@ -26,7 +26,7 @@ class CachedSegment < ApplicationRecord
     ).where.not(start_latitude: nil, start_longitude: nil)
   end
 
-  def self.with_filters(max_distance_m: nil, max_pace_min_km: nil)
+  def self.with_filters(max_distance_m: nil, max_pace_min_km: nil, show_done_only: false, show_favorited_only: false)
     scope = all
     scope = scope.where('distance <= ?', max_distance_m) if max_distance_m
     
@@ -39,6 +39,9 @@ class CachedSegment < ApplicationRecord
       # kom_time >= max_pace_min_km * distance * 0.06
       scope = scope.where('kom_time >= (? * distance * 0.06)', max_pace_min_km)
     end
+    
+    scope = scope.where(is_done: true) if show_done_only
+    scope = scope.where(is_favorited: true) if show_favorited_only
     
     scope
   end

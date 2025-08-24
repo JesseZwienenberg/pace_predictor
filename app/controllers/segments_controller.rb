@@ -10,19 +10,56 @@ class SegmentsController < ApplicationController
     radius = params[:radius].to_f || 5
     max_distance = params[:max_distance].to_i || 3000
     max_pace = params[:max_pace].to_f if params[:max_pace].present?
+    show_done_only = params[:show_done_only] == "true"
+    show_favorited_only = params[:show_favorited_only] == "true"
 
     begin
       
       # Check if we have adequate cached coverage for this search
       # Only use cached segments if we're sorting OR if we have recent comprehensive coverage
       cached_segments_with_coords = CachedSegment.near_location(lat, lng, radius)
-                                                .with_filters(max_distance_m: max_distance, max_pace_min_km: max_pace)
+                                                .with_filters(max_distance_m: max_distance, max_pace_min_km: max_pace, show_done_only: show_done_only, show_favorited_only: show_favorited_only)
                                                 .where('kom_time > 0')
       
-      # If we're just sorting (have sort params), use cached segments to avoid API calls
-      if params[:sort].present? && cached_segments_with_coords.exists?
-        Rails.logger.info "🔄 Sorting request detected - using cached segments for location #{lat}, #{lng} to avoid API calls"
+      # If we're just sorting (have sort params) or filtering by markings, use cached segments to avoid API calls
+      if (params[:sort].present? && cached_segments_with_coords.exists?) || show_done_only || show_favorited_only
+        reason = if show_done_only || show_favorited_only
+          "marking filter detected - only cached segments can have markings"
+        else
+          "sorting request detected"
+        end
+        Rails.logger.info "🔄 #{reason.capitalize} - using cached segments for location #{lat}, #{lng} to avoid API calls"
         
+        @segments = cached_segments_with_coords.map do |seg|
+          ratio = seg.difficulty_ratio
+          next if !ratio || ratio <= 0
+          
+          distance_from_search = if seg.start_latitude && seg.start_longitude
+            haversine_distance(lat, lng, seg.start_latitude.to_f, seg.start_longitude.to_f)
+          else
+            nil
+          end
+          
+          {
+            id: seg.strava_id,
+            name: seg.name,
+            distance: seg.distance,
+            kom_time: seg.kom_time,
+            kom_pace: seg.kom_pace,
+            difficulty_ratio: ratio,
+            distance_from_search: distance_from_search,
+            background_color_class: seg.background_color_class,
+            is_done: seg.is_done,
+            is_favorited: seg.is_favorited,
+            is_unavailable: seg.is_unavailable
+          }
+        end.compact
+        
+      elsif show_done_only || show_favorited_only
+        # When filtering by markings, only use cached segments (no API calls needed)
+        Rails.logger.info "Marking filter active - using only cached segments for location #{lat}, #{lng} (found #{cached_segments_with_coords.count})"
+        
+        # Convert to the format expected by the view
         @segments = cached_segments_with_coords.map do |seg|
           ratio = seg.difficulty_ratio
           next if !ratio || ratio <= 0
@@ -114,6 +151,7 @@ class SegmentsController < ApplicationController
         end
       end
       
+      
       # Apply sorting
       sort_column = params[:sort] || 'ratio'
       sort_direction = params[:direction] || 'desc'
@@ -131,7 +169,7 @@ class SegmentsController < ApplicationController
         # Still show cached segments if available, even when rate limited
         Rails.logger.info "Rate limited - checking for cached segments in area"
         cached_segments_with_coords = CachedSegment.near_location(lat, lng, radius)
-                                                  .with_filters(max_distance_m: max_distance, max_pace_min_km: max_pace)
+                                                  .with_filters(max_distance_m: max_distance, max_pace_min_km: max_pace, show_done_only: show_done_only, show_favorited_only: show_favorited_only)
                                                   .where('kom_time > 0')
         
         if cached_segments_with_coords.exists?
@@ -184,7 +222,7 @@ class SegmentsController < ApplicationController
         # Still check database for cached segments even on API failures
         Rails.logger.info "API failed - checking for cached segments in area"
         cached_segments_with_coords = CachedSegment.near_location(lat, lng, radius)
-                                                  .with_filters(max_distance_m: max_distance, max_pace_min_km: max_pace)
+                                                  .with_filters(max_distance_m: max_distance, max_pace_min_km: max_pace, show_done_only: show_done_only, show_favorited_only: show_favorited_only)
                                                   .where('kom_time > 0')
         
         if cached_segments_with_coords.exists?

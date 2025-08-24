@@ -6,7 +6,71 @@
   %p Filtering: KOM pace ≥ #{@max_pace} min/km
 
 - if @segments.any?
-  %table
+  .results-filters
+    %label
+      %input{type: "checkbox", id: "filter-done", onchange: "filterSegments()"} Show only done segments
+    %label
+      %input{type: "checkbox", id: "filter-favorited", onchange: "filterSegments()"} Show only favorited segments
+    %button{onclick: "clearFilters()", class: "btn btn-clear"} Clear Filters
+  
+  :javascript
+    function filterSegments() {
+      console.log('Filter function called');
+      const filterDone = document.getElementById('filter-done');
+      const filterFavorited = document.getElementById('filter-favorited');
+      const table = document.getElementById('segments-table');
+      
+      if (!table) {
+        console.log('Table not found');
+        return;
+      }
+      
+      const showDoneOnly = filterDone.checked;
+      const showFavoritedOnly = filterFavorited.checked;
+      const rows = table.querySelectorAll('tbody tr');
+      
+      console.log('Filtering with:', { showDoneOnly, showFavoritedOnly, rowCount: rows.length });
+      
+      rows.forEach((row, index) => {
+        const doneAttr = row.getAttribute('data-done');
+        const favoritedAttr = row.getAttribute('data-favorited');
+        const isDone = doneAttr === 'true' || (doneAttr === '' && doneAttr !== null);
+        const isFavorited = favoritedAttr === 'true' || (favoritedAttr === '' && favoritedAttr !== null);
+        
+        console.log(`Row ${index}:`, { doneAttr, favoritedAttr, isDone, isFavorited });
+        
+        let showRow = true;
+        
+        if (showDoneOnly && !isDone) {
+          showRow = false;
+        }
+        if (showFavoritedOnly && !isFavorited) {
+          showRow = false;
+        }
+        
+        row.style.display = showRow ? '' : 'none';
+        console.log(`Row ${index} display:`, row.style.display);
+      });
+    }
+    
+    function clearFilters() {
+      console.log('Clear filters called');
+      const filterDone = document.getElementById('filter-done');
+      const filterFavorited = document.getElementById('filter-favorited');
+      const table = document.getElementById('segments-table');
+      
+      if (filterDone) filterDone.checked = false;
+      if (filterFavorited) filterFavorited.checked = false;
+      
+      if (table) {
+        const rows = table.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+          row.style.display = '';
+        });
+      }
+    }
+  
+  %table{id: "segments-table"}
     %thead
       %tr
         %th= sortable_link('name', 'Name')
@@ -17,7 +81,7 @@
         %th Actions
     %tbody
       - @segments.each do |seg|
-        %tr{class: seg[:background_color_class]}
+        %tr{class: seg[:background_color_class], "data-done" => seg[:is_done] ? "true" : "false", "data-favorited" => seg[:is_favorited] ? "true" : "false"}
           %td= link_to seg[:name], "https://www.strava.com/segments/#{seg[:id]}", target: "_blank"
           %td= "#{seg[:distance]}m"
           %td= "#{format_pace(seg[:kom_pace])} min/km"
