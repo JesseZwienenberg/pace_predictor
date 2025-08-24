@@ -287,9 +287,16 @@ class SegmentsController < ApplicationController
     if segment
       segment.update!(is_done: !segment.is_done, is_favorited: false, is_unavailable: false)
       status = segment.is_done ? "done" : "unmarked"
-      redirect_back(fallback_location: root_path, notice: "Segment marked as #{status}")
+      
+      respond_to do |format|
+        format.html { redirect_back(fallback_location: root_path, notice: "Segment marked as #{status}") }
+        format.json { render json: { success: true, status: status, segment_id: params[:id], background_class: segment.background_color_class } }
+      end
     else
-      redirect_back(fallback_location: root_path, alert: "Segment not found")
+      respond_to do |format|
+        format.html { redirect_back(fallback_location: root_path, alert: "Segment not found") }
+        format.json { render json: { success: false, error: "Segment not found" }, status: 404 }
+      end
     end
   end
 
@@ -298,9 +305,16 @@ class SegmentsController < ApplicationController
     if segment
       segment.update!(is_favorited: !segment.is_favorited, is_done: false, is_unavailable: false)
       status = segment.is_favorited ? "favorited" : "unmarked"
-      redirect_back(fallback_location: root_path, notice: "Segment marked as #{status}")
+      
+      respond_to do |format|
+        format.html { redirect_back(fallback_location: root_path, notice: "Segment marked as #{status}") }
+        format.json { render json: { success: true, status: status, segment_id: params[:id], background_class: segment.background_color_class } }
+      end
     else
-      redirect_back(fallback_location: root_path, alert: "Segment not found")
+      respond_to do |format|
+        format.html { redirect_back(fallback_location: root_path, alert: "Segment not found") }
+        format.json { render json: { success: false, error: "Segment not found" }, status: 404 }
+      end
     end
   end
 
@@ -309,9 +323,16 @@ class SegmentsController < ApplicationController
     if segment
       segment.update!(is_unavailable: !segment.is_unavailable, is_done: false, is_favorited: false)
       status = segment.is_unavailable ? "unavailable" : "unmarked"
-      redirect_back(fallback_location: root_path, notice: "Segment marked as #{status}")
+      
+      respond_to do |format|
+        format.html { redirect_back(fallback_location: root_path, notice: "Segment marked as #{status}") }
+        format.json { render json: { success: true, status: status, segment_id: params[:id], background_class: segment.background_color_class } }
+      end
     else
-      redirect_back(fallback_location: root_path, alert: "Segment not found")
+      respond_to do |format|
+        format.html { redirect_back(fallback_location: root_path, alert: "Segment not found") }
+        format.json { render json: { success: false, error: "Segment not found" }, status: 404 }
+      end
     end
   end
 
