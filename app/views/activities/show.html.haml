@@ -108,4 +108,4 @@
   = render 'shared/pace_chart_script', chart_id: 'speedChart', chart_title: 'Speed Over Time', datasets: @speed_chart_datasets, x_axis_config: x_axis_config
 
 - if @activity.all_best_efforts
-  = render 'shared/pace_chart_script', chart_id: 'bestEffortsChart', chart_title: 'Best Efforts', datasets: @best_efforts_datasets
+  = render 'shared/pace_chart_script', chart_id: 'bestEffortsChart', chart_title: 'Best Efforts', datasets: @best_efforts_datasets, all_time_best_ranges: @all_time_best_ranges

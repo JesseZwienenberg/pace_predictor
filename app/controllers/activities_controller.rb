@@ -371,6 +371,47 @@ class ActivitiesController < ApplicationController
         showPoints: false,
         borderWidth: 3
       }] 
+      
+      # Get all-time best effort ranges for this activity
+      @all_time_best_ranges = get_all_time_best_ranges(@activity.id)
     end
+  end
+  
+  def get_all_time_best_ranges(activity_id)
+    # Get all distances where this activity holds the all-time best
+    best_efforts = AllTimeBestEffort.where(activity_id: activity_id).order(:distance_meters)
+    
+    return [] if best_efforts.empty?
+    
+    # Group consecutive distances into ranges (distances are in 10m increments)
+    ranges = []
+    current_range = { start: nil, end: nil }
+    last_distance_meters = nil
+    
+    best_efforts.each do |effort|
+      distance_km = effort.distance_meters / 1000.0
+      
+      if current_range[:start].nil?
+        # Start a new range
+        current_range[:start] = distance_km
+        current_range[:end] = distance_km
+        last_distance_meters = effort.distance_meters
+      elsif effort.distance_meters == last_distance_meters + 10
+        # Continue the current range (consecutive 10m increment)
+        current_range[:end] = distance_km
+        last_distance_meters = effort.distance_meters
+      else
+        # Gap found, save current range and start a new one
+        ranges << current_range.dup
+        current_range[:start] = distance_km
+        current_range[:end] = distance_km
+        last_distance_meters = effort.distance_meters
+      end
+    end
+    
+    # Don't forget the last range
+    ranges << current_range if current_range[:start]
+    
+    ranges
   end
 end
