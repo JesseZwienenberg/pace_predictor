@@ -172,3 +172,72 @@ th a:visited {
   border: 1px solid #f5c6cb;
   margin: 10px 0;
 }
+
+/* Segment marking background colors */
+.segment-done {
+  background-color: #d4f4dd !important;
+}
+
+.segment-favorited {
+  background-color: #fff3cd !important;
+}
+
+.segment-unavailable {
+  background-color: #f8d7da !important;
+}
+
+/* Segment action buttons */
+.segment-actions {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.btn-done {
+  background-color: #28a745;
+  color: white;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 3px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.btn-done:hover {
+  background-color: #218838;
+}
+
+.btn-favorite {
+  background-color: #ffc107;
+  color: white;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 3px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.btn-favorite:hover {
+  background-color: #e0a800;
+}
+
+.btn-unavailable {
+  background-color: #dc3545;
+  color: white;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 3px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.btn-unavailable:hover {
+  background-color: #c82333;
+}
+
+.btn-done.active,
+.btn-favorite.active,
+.btn-unavailable.active {
+  box-shadow: 0 0 0 2px #333;
+  font-weight: bold;
+}

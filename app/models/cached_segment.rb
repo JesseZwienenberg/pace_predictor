@@ -8,6 +8,13 @@ class CachedSegment < ApplicationRecord
     SegmentAnalyzer.difficulty_ratio(distance, kom_time) if distance && kom_time
   end
 
+  def background_color_class
+    return 'segment-done' if is_done
+    return 'segment-favorited' if is_favorited
+    return 'segment-unavailable' if is_unavailable
+    ''
+  end
+
   def self.near_location(lat, lng, radius_km)
     # Convert km to degrees (rough approximation)
     lat_range = radius_km / 111.0

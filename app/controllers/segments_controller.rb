@@ -40,7 +40,11 @@ class SegmentsController < ApplicationController
             kom_time: seg.kom_time,
             kom_pace: seg.kom_pace,
             difficulty_ratio: ratio,
-            distance_from_search: distance_from_search
+            distance_from_search: distance_from_search,
+            background_color_class: seg.background_color_class,
+            is_done: seg.is_done,
+            is_favorited: seg.is_favorited,
+            is_unavailable: seg.is_unavailable
           }
         end.compact
         
@@ -65,7 +69,11 @@ class SegmentsController < ApplicationController
             kom_time: seg.kom_time,
             kom_pace: seg.kom_pace,
             difficulty_ratio: ratio,
-            distance_from_search: distance_from_search
+            distance_from_search: distance_from_search,
+            background_color_class: seg.background_color_class,
+            is_done: seg.is_done,
+            is_favorited: seg.is_favorited,
+            is_unavailable: seg.is_unavailable
           }
         end.compact
       else
@@ -206,6 +214,39 @@ class SegmentsController < ApplicationController
     kom_time = finder.refresh_segment(params[:id])
     
     redirect_back(fallback_location: root_path, notice: "KOM updated: #{kom_time}s")
+  end
+
+  def mark_done
+    segment = CachedSegment.find_by(strava_id: params[:id])
+    if segment
+      segment.update!(is_done: !segment.is_done, is_favorited: false, is_unavailable: false)
+      status = segment.is_done ? "done" : "unmarked"
+      redirect_back(fallback_location: root_path, notice: "Segment marked as #{status}")
+    else
+      redirect_back(fallback_location: root_path, alert: "Segment not found")
+    end
+  end
+
+  def mark_favorited
+    segment = CachedSegment.find_by(strava_id: params[:id])
+    if segment
+      segment.update!(is_favorited: !segment.is_favorited, is_done: false, is_unavailable: false)
+      status = segment.is_favorited ? "favorited" : "unmarked"
+      redirect_back(fallback_location: root_path, notice: "Segment marked as #{status}")
+    else
+      redirect_back(fallback_location: root_path, alert: "Segment not found")
+    end
+  end
+
+  def mark_unavailable
+    segment = CachedSegment.find_by(strava_id: params[:id])
+    if segment
+      segment.update!(is_unavailable: !segment.is_unavailable, is_done: false, is_favorited: false)
+      status = segment.is_unavailable ? "unavailable" : "unmarked"
+      redirect_back(fallback_location: root_path, notice: "Segment marked as #{status}")
+    else
+      redirect_back(fallback_location: root_path, alert: "Segment not found")
+    end
   end
 
   private

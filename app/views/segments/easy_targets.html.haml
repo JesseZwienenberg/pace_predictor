@@ -17,7 +17,7 @@
         %th Actions
     %tbody
       - @segments.each do |seg|
-        %tr
+        %tr{class: seg[:background_color_class]}
           %td= link_to seg[:name], "https://www.strava.com/segments/#{seg[:id]}", target: "_blank"
           %td= "#{seg[:distance]}m"
           %td= "#{format_pace(seg[:kom_pace])} min/km"
@@ -28,6 +28,10 @@
             - else
               %span{style: "color: grey;"} N/A
           %td
-            = button_to "Refresh KOM", refresh_kom_segment_path(seg[:id]), method: :post, class: "btn btn-primary"
+            .segment-actions
+              = button_to "✓", mark_done_segment_path(seg[:id]), method: :post, class: "btn btn-done #{'active' if seg[:is_done]}", title: "Mark as Done"
+              = button_to "★", mark_favorited_segment_path(seg[:id]), method: :post, class: "btn btn-favorite #{'active' if seg[:is_favorited]}", title: "Mark as Favorite"
+              = button_to "✗", mark_unavailable_segment_path(seg[:id]), method: :post, class: "btn btn-unavailable #{'active' if seg[:is_unavailable]}", title: "Mark as Unavailable"
+              = button_to "Refresh KOM", refresh_kom_segment_path(seg[:id]), method: :post, class: "btn btn-primary"
 - elsif !@error
   %p No segments found matching your criteria.

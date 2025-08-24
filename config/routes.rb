@@ -25,6 +25,9 @@ Rails.application.routes.draw do
     end
     member do
       post :refresh_kom  # Added this for the refresh action
+      post :mark_done
+      post :mark_favorited
+      post :mark_unavailable
     end
   end
 

@@ -11,11 +11,17 @@ class EasySegmentFinder
   def find(lat, lng, max_radius_km, max_segment_distance_m = 5000, max_pace_min_km = nil)
     @search_lat = lat
     @search_lng = lng
+    
+    # ALWAYS get cached segments that satisfy the conditions first
+    cached_results = get_cached_segments(lat, lng, max_radius_km, max_segment_distance_m, max_pace_min_km)
+    Rails.logger.info "Found #{cached_results.count} cached segments that satisfy conditions"
+    
     all_segments = fetch_segments_in_grid(lat, lng, max_radius_km)
     
-    # Check if we got rate limited during segment fetching
+    # If we got network errors during segment fetching, return only cached results
     if @rate_limited
-      raise "Rate limited! Daily limit exceeded. Please wait until tomorrow to search again."
+      Rails.logger.warn "Network issues detected - returning only cached segments (#{cached_results.count} found)"
+      return cached_results
     end
     
     Rails.logger.info "Found #{all_segments.count} total segments to check"
@@ -44,10 +50,13 @@ class EasySegmentFinder
         # Fetch from API and cache it
         kom_time = fetch_kom_time_from_leaderboard(seg.id, seg.name)
         
-        # If we got rate limited during the fetch, break immediately
+            # If we got rate limited during the fetch, break immediately and return cached + processed results
         if @rate_limited
-          Rails.logger.warn "🛑 Stopping segment processing due to network issues (likely rate limiting). Processed #{processed_count}/#{all_segments.count} segments."
-          break
+          Rails.logger.warn "🛑 Stopping segment processing due to network issues. Processed #{processed_count}/#{all_segments.count} segments."
+          Rails.logger.info "Combining #{results.count} processed segments with #{cached_results.count} cached segments"
+          combined_results = (results + cached_results).uniq { |s| s[:id] }
+          Rails.logger.info "Returning #{combined_results.count} total segments after combining and deduplicating"
+          return combined_results.sort_by { |s| -s[:difficulty_ratio] }
         end
         
         if kom_time && kom_time > 0
@@ -91,8 +100,11 @@ class EasySegmentFinder
       }
     end
     
-    Rails.logger.info "Returning #{results.count} segments after filtering (processed #{processed_count}/#{all_segments.count} total segments)"
-    results.sort_by { |s| -s[:difficulty_ratio] }
+    # Always combine API results with cached segments
+    Rails.logger.info "Combining #{results.count} API results with #{cached_results.count} cached segments"
+    combined_results = (results + cached_results).uniq { |s| s[:id] }
+    Rails.logger.info "Returning #{combined_results.count} total segments after combining and deduplicating (processed #{processed_count}/#{all_segments.count} API segments)"
+    combined_results.sort_by { |s| -s[:difficulty_ratio] }
   end
   
   # Add method to refresh a single segment
@@ -121,6 +133,41 @@ class EasySegmentFinder
   end
   
   private
+  
+  # Get cached segments that satisfy the search conditions
+  def get_cached_segments(lat, lng, max_radius_km, max_segment_distance_m, max_pace_min_km)
+    cached_segments = CachedSegment.where('start_latitude IS NOT NULL AND start_longitude IS NOT NULL')
+                                   .where('kom_time > 0')
+                                   .where('distance <= ?', max_segment_distance_m)
+    
+    results = []
+    cached_segments.each do |cached|
+      # Calculate distance from search location
+      distance_from_search = haversine_distance(lat, lng, cached.start_latitude.to_f, cached.start_longitude.to_f)
+      
+      # Skip if outside search radius
+      next if distance_from_search > max_radius_km
+      
+      kom_pace = cached.kom_pace
+      next if kom_pace < 1.0  # Sanity check
+      next if max_pace_min_km && kom_pace < max_pace_min_km
+      
+      ratio = cached.difficulty_ratio
+      next if !ratio || ratio <= 0
+      
+      results << {
+        id: cached.strava_id,
+        name: cached.name,
+        distance: cached.distance,
+        kom_time: cached.kom_time,
+        kom_pace: kom_pace,
+        difficulty_ratio: ratio,
+        distance_from_search: distance_from_search
+      }
+    end
+    
+    results
+  end
   
   def fetch_segments_in_grid(center_lat, center_lng, radius_km)
     segments = {}
@@ -207,11 +254,17 @@ class EasySegmentFinder
       Rails.logger.error "🛑 Timeout in explore_segments - likely rate limiting. Stopping grid search: #{e.class.name}"
       @rate_limited = true
       []
+    rescue OpenSSL::SSL::SSLError, Errno::ECONNREFUSED, Errno::ECONNRESET, Errno::EHOSTUNREACH, Errno::ENETUNREACH => e
+      Rails.logger.error "🛑 Network/SSL error in explore_segments - stopping API calls: #{e.class.name} - #{e.message}"
+      @rate_limited = true
+      []
     rescue => e
-      # Check if it's a rate limit error
-      if e.class.name.include?('RatelimitError') || e.message.include?('rate')
+      # Check if it's a rate limit error or other network issues
+      if e.class.name.include?('RatelimitError') || e.message.include?('rate') ||
+         e.message.include?('443') || e.message.include?('SSL') ||
+         e.message.include?('connection') || e.message.include?('network')
         @rate_limited = true
-        Rails.logger.error "🛑 Rate limited in explore_segments! Daily or 15-minute limit exceeded"
+        Rails.logger.error "🛑 Network/Rate limit error in explore_segments! Stopping API calls: #{e.class.name} - #{e.message}"
         []
       else
         Rails.logger.error "Error exploring segments: #{e.message rescue e.inspect}"
@@ -324,9 +377,22 @@ class EasySegmentFinder
       @request_delay = [@request_delay * 2, 5.0].min
       Rails.logger.info "🐌 Increased request delay to #{@request_delay}s due to timeout"
       nil
-    rescue => e
-      Rails.logger.error "❌ Error fetching segment #{segment_id}: #{e.class.name} - #{e.message}"
+    rescue OpenSSL::SSL::SSLError, Errno::ECONNREFUSED, Errno::ECONNRESET, Errno::EHOSTUNREACH, Errno::ENETUNREACH => e
+      Rails.logger.error "🛑 Network/SSL error for segment #{segment_id} - stopping API calls: #{e.class.name} - #{e.message}"
+      @rate_limited = true
       nil
+    rescue => e
+      # Check if it's a network error that should stop processing
+      if e.message.include?('443') || e.message.include?('SSL') ||
+         e.message.include?('connection') || e.message.include?('network') ||
+         e.message.include?('OpenNet') || e.message.include?('timeout')
+        Rails.logger.error "🛑 Network error for segment #{segment_id} - stopping API calls: #{e.class.name} - #{e.message}"
+        @rate_limited = true
+        nil
+      else
+        Rails.logger.error "❌ Error fetching segment #{segment_id}: #{e.class.name} - #{e.message}"
+        nil
+      end
     end
   end
   
@@ -391,9 +457,22 @@ class EasySegmentFinder
       @request_delay = [@request_delay * 2, 5.0].min
       Rails.logger.info "🐌 Increased request delay to #{@request_delay}s due to timeout"
       nil
-    rescue => e
-      Rails.logger.error "❌ Error fetching efforts for segment #{segment_id}: #{e.class.name} - #{e.message}"
+    rescue OpenSSL::SSL::SSLError, Errno::ECONNREFUSED, Errno::ECONNRESET, Errno::EHOSTUNREACH, Errno::ENETUNREACH => e
+      Rails.logger.error "🛑 Network/SSL error for segment efforts #{segment_id} - stopping API calls: #{e.class.name} - #{e.message}"
+      @rate_limited = true
       nil
+    rescue => e
+      # Check if it's a network error that should stop processing
+      if e.message.include?('443') || e.message.include?('SSL') ||
+         e.message.include?('connection') || e.message.include?('network') ||
+         e.message.include?('OpenNet') || e.message.include?('timeout')
+        Rails.logger.error "🛑 Network error for segment efforts #{segment_id} - stopping API calls: #{e.class.name} - #{e.message}"
+        @rate_limited = true
+        nil
+      else
+        Rails.logger.error "❌ Error fetching efforts for segment #{segment_id}: #{e.class.name} - #{e.message}"
+        nil
+      end
     end
   end
   
