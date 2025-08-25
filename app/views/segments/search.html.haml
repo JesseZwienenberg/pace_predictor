@@ -16,9 +16,29 @@
 
 :javascript
   function searchDoneSegments() {
-    window.location.href = '#{easy_targets_segments_path}?filter=done';
+    searchWithUserLocation('done');
   }
   
   function searchFavoritedSegments() {
-    window.location.href = '#{easy_targets_segments_path}?filter=favorited';
+    searchWithUserLocation('favorited');
+  }
+  
+  function searchWithUserLocation(filter) {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        function(position) {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          window.location.href = `#{easy_targets_segments_path}?filter=${filter}&lat=${lat}&lng=${lng}`;
+        },
+        function(error) {
+          console.log('Geolocation error:', error);
+          // If geolocation fails, proceed without location
+          window.location.href = `#{easy_targets_segments_path}?filter=${filter}`;
+        }
+      );
+    } else {
+      // Geolocation not supported, proceed without location
+      window.location.href = `#{easy_targets_segments_path}?filter=${filter}`;
+    }
   }

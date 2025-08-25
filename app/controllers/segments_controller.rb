@@ -373,10 +373,20 @@ class SegmentsController < ApplicationController
       CachedSegment.none
     end
     
+    # Get user location if provided
+    user_lat = params[:lat].to_f if params[:lat].present?
+    user_lng = params[:lng].to_f if params[:lng].present?
+    
     # Format segments similar to the normal search results
     @segments = segments.map do |seg|
       ratio = seg.difficulty_ratio
       next if !ratio || ratio <= 0
+      
+      # Calculate distance from user location if available
+      distance_from_search = nil
+      if user_lat && user_lng && seg.start_latitude && seg.start_longitude
+        distance_from_search = haversine_distance(user_lat, user_lng, seg.start_latitude.to_f, seg.start_longitude.to_f)
+      end
       
       {
         id: seg.strava_id,
@@ -385,7 +395,7 @@ class SegmentsController < ApplicationController
         kom_time: seg.kom_time,
         kom_pace: seg.kom_pace,
         difficulty_ratio: ratio,
-        distance_from_search: nil, # Not applicable for database-only searches
+        distance_from_search: distance_from_search,
         is_done: seg.is_done,
         is_favorited: seg.is_favorited,
         is_unavailable: seg.is_unavailable,
@@ -396,7 +406,8 @@ class SegmentsController < ApplicationController
     # Sort by ratio (highest first) like the normal search
     @segments = @segments.sort_by { |seg| -seg[:difficulty_ratio] }
     
-    Rails.logger.info "🗂️  Database filter search: #{filter} - found #{@segments.length} segments"
+    location_info = user_lat && user_lng ? "with user location (#{user_lat}, #{user_lng})" : "without location"
+    Rails.logger.info "🗂️  Database filter search: #{filter} #{location_info} - found #{@segments.length} segments"
   end
 
   def should_use_cached_segments?(lat, lng, radius)
