@@ -5,6 +5,12 @@ class SegmentsController < ApplicationController
   end
   
   def easy_targets
+    # Handle database-only filter searches (from search page buttons)
+    if params[:filter].present?
+      handle_database_filter_search(params[:filter])
+      return
+    end
+
     lat = params[:lat].to_f
     lng = params[:lng].to_f
     radius = params[:radius].to_f || 5
@@ -356,6 +362,42 @@ class SegmentsController < ApplicationController
   end
 
   private
+
+  def handle_database_filter_search(filter)
+    segments = case filter
+    when 'done'
+      CachedSegment.where(is_done: true).order(:name)
+    when 'favorited'
+      CachedSegment.where(is_favorited: true).order(:name)
+    else
+      CachedSegment.none
+    end
+    
+    # Format segments similar to the normal search results
+    @segments = segments.map do |seg|
+      ratio = seg.difficulty_ratio
+      next if !ratio || ratio <= 0
+      
+      {
+        id: seg.strava_id,
+        name: seg.name,
+        distance: seg.distance,
+        kom_time: seg.kom_time,
+        kom_pace: seg.kom_pace,
+        difficulty_ratio: ratio,
+        distance_from_search: nil, # Not applicable for database-only searches
+        is_done: seg.is_done,
+        is_favorited: seg.is_favorited,
+        is_unavailable: seg.is_unavailable,
+        background_color_class: seg.background_color_class
+      }
+    end.compact
+    
+    # Sort by ratio (highest first) like the normal search
+    @segments = @segments.sort_by { |seg| -seg[:difficulty_ratio] }
+    
+    Rails.logger.info "🗂️  Database filter search: #{filter} - found #{@segments.length} segments"
+  end
 
   def should_use_cached_segments?(lat, lng, radius)
     # For now, be conservative and always use API for new searches

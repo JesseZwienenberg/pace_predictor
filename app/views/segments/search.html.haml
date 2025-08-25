@@ -7,9 +7,18 @@
   = f.number_field :radius, placeholder: "Radius (km)", value: 5
   = f.number_field :max_distance, placeholder: "Max segment (m)", value: 3000
   = f.number_field :max_pace, step: 0.1, placeholder: "Max pace (min/km)"
-  .filter-options
-    = f.check_box :show_done_only, {}, "true", ""
-    = f.label :show_done_only, "Show only done segments"
-    = f.check_box :show_favorited_only, {}, "true", ""
-    = f.label :show_favorited_only, "Show only favorited segments"
   = f.submit "Find Segments"
+
+.database-search-options
+  %p Or search from your saved segments:
+  %button{type: "button", onclick: "searchDoneSegments()", class: "btn btn-database"} Show All Done Segments
+  %button{type: "button", onclick: "searchFavoritedSegments()", class: "btn btn-database"} Show All Favorited Segments
+
+:javascript
+  function searchDoneSegments() {
+    window.location.href = '#{easy_targets_segments_path}?filter=done';
+  }
+  
+  function searchFavoritedSegments() {
+    window.location.href = '#{easy_targets_segments_path}?filter=favorited';
+  }
