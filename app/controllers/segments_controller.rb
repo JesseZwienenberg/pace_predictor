@@ -403,11 +403,13 @@ class SegmentsController < ApplicationController
       }
     end.compact
     
-    # Sort by ratio (highest first) like the normal search
-    @segments = @segments.sort_by { |seg| -seg[:difficulty_ratio] }
+    # Apply sorting (same as regular search)
+    sort_column = params[:sort] || 'ratio'
+    sort_direction = params[:direction] || 'desc'
+    @segments = sort_segments(@segments, sort_column, sort_direction)
     
     location_info = user_lat && user_lng ? "with user location (#{user_lat}, #{user_lng})" : "without location"
-    Rails.logger.info "🗂️  Database filter search: #{filter} #{location_info} - found #{@segments.length} segments"
+    Rails.logger.info "🗂️  Database filter search: #{filter} #{location_info} - found #{@segments.length} segments (sorted by #{sort_column} #{sort_direction})"
   end
 
   def should_use_cached_segments?(lat, lng, radius)
