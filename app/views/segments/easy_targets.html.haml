@@ -96,6 +96,6 @@
               %button{class: "btn btn-done #{'active' if seg[:is_done]}", title: "Mark as Done", onclick: "markSegment('#{seg[:id]}', 'done')"} ✓
               %button{class: "btn btn-favorite #{'active' if seg[:is_favorited]}", title: "Mark as Favorite", onclick: "markSegment('#{seg[:id]}', 'favorited')"} ★
               %button{class: "btn btn-unavailable #{'active' if seg[:is_unavailable]}", title: "Mark as Unavailable", onclick: "markSegment('#{seg[:id]}', 'unavailable')"} ✗
-              = button_to "Refresh KOM", refresh_kom_segment_path(seg[:id]), method: :post, class: "btn btn-primary"
+              %button{class: "btn btn-primary", title: "Refresh KOM", onclick: "refreshKom('#{seg[:id]}')"} Refresh KOM
 - elsif !@error
   %p No segments found matching your criteria.

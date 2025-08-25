@@ -279,7 +279,26 @@ class SegmentsController < ApplicationController
     finder = EasySegmentFinder.new(session[:strava_access_token])
     kom_time = finder.refresh_segment(params[:id])
     
-    redirect_back(fallback_location: root_path, notice: "KOM updated: #{kom_time}s")
+    # Get updated segment data for response
+    cached_segment = CachedSegment.find_by(strava_id: params[:id])
+    kom_pace = nil
+    difficulty_ratio = nil
+    
+    if cached_segment && cached_segment.kom_time && cached_segment.distance
+      # Calculate KOM pace (min/km)
+      kom_pace = (cached_segment.kom_time / 60.0) / (cached_segment.distance / 1000.0)
+      difficulty_ratio = cached_segment.difficulty_ratio
+    end
+    
+    respond_to do |format|
+      format.html { redirect_back(fallback_location: root_path, notice: "KOM updated: #{kom_time}s") }
+      format.json { render json: { success: true, segment_id: params[:id], kom_time: kom_time, kom_pace: kom_pace, difficulty_ratio: difficulty_ratio } }
+    end
+  rescue => e
+    respond_to do |format|
+      format.html { redirect_back(fallback_location: root_path, alert: "Failed to refresh KOM: #{e.message}") }
+      format.json { render json: { success: false, error: e.message }, status: 500 }
+    end
   end
 
   def mark_done

@@ -228,6 +228,98 @@ window.markSegment = function(segmentId, markingType) {
   });
 };
 
+// Handle KOM refresh with pure fetch requests
+window.refreshKom = function(segmentId) {
+  const button = event.target;
+  const originalText = button.textContent;
+  
+  // Disable button and show loading state
+  button.disabled = true;
+  button.textContent = 'Refreshing...';
+  button.style.opacity = '0.6';
+  
+  // Get CSRF token for Rails
+  const csrfToken = document.querySelector('meta[name="csrf-token"]');
+  const token = csrfToken ? csrfToken.getAttribute('content') : '';
+  
+  const url = `/segments/${segmentId}/refresh_kom`;
+  
+  console.log(`Making KOM refresh request to: ${url}`);
+  
+  // Make fetch request
+  fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'X-CSRF-Token': token,
+      'X-Requested-With': 'XMLHttpRequest'
+    },
+    credentials: 'same-origin'
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      updateKomTime(segmentId, data.kom_time, data.kom_pace, data.difficulty_ratio);
+      showNotification(`KOM updated: ${data.kom_time}s`, 'success');
+    } else {
+      showNotification(data.error || 'Failed to refresh KOM', 'error');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    showNotification('Network error occurred while refreshing KOM', 'error');
+  })
+  .finally(() => {
+    // Re-enable button
+    button.disabled = false;
+    button.textContent = originalText;
+    button.style.opacity = '1';
+  });
+};
+
+function updateKomTime(segmentId, komTime, komPace, difficultyRatio) {
+  // Find the table row for this segment by checking the onclick attributes
+  const rows = document.querySelectorAll('#segments-table tbody tr');
+  
+  rows.forEach(row => {
+    const actionCell = row.querySelector('.segment-actions');
+    if (!actionCell) return;
+    
+    // Check if this row contains buttons for the segment
+    const segmentButtons = actionCell.querySelectorAll(`[onclick*="'${segmentId}'"]`);
+    if (segmentButtons.length === 0) return;
+    
+    // Update KOM pace in the 3rd column (index 2)
+    if (komPace) {
+      const komPaceCell = row.cells[2];
+      if (komPaceCell) {
+        const formattedPace = formatPace(komPace);
+        komPaceCell.textContent = `${formattedPace} min/km`;
+      }
+    }
+    
+    // Update ratio in the 4th column (index 3)  
+    if (difficultyRatio) {
+      const ratioCell = row.cells[3];
+      if (ratioCell) {
+        ratioCell.textContent = `${(difficultyRatio * 100).toFixed(0)}%`;
+      }
+    }
+    
+    console.log(`KOM data updated for segment ${segmentId}: ${komTime}s, pace: ${komPace}, ratio: ${difficultyRatio}`);
+  });
+}
+
+// Helper function to format pace like the server does
+function formatPace(paceMinutesPerKm) {
+  if (!paceMinutesPerKm || paceMinutesPerKm === 0) return "0:00";
+  
+  const minutes = Math.floor(paceMinutesPerKm);
+  const seconds = Math.round((paceMinutesPerKm - minutes) * 60);
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
 function updateSegmentRow(segmentId, backgroundClass, status) {
   // Find the table row for this segment by checking the onclick attributes
   const rows = document.querySelectorAll('#segments-table tbody tr');
