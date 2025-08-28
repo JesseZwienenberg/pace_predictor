@@ -353,6 +353,25 @@
             position: 'top'
           },
           tooltip: {
+            filter: function(tooltipItem, index, tooltipItems, data) {
+              return true; // Show all tooltip items
+            },
+            position: 'nearest',
+            yAlign: function(tooltip) {
+              // Get the first dataset's element at this x position
+              const chart = tooltip.chart;
+              const activeElements = chart.getActiveElements();
+              if (activeElements && activeElements.length > 0) {
+                const firstElement = activeElements[0];
+                const yPos = firstElement.element.y;
+                const canvasHeight = chart.height;
+                
+                if (yPos < canvasHeight / 3) return 'bottom';
+                if (yPos > (canvasHeight * 2) / 3) return 'top';
+                return 'center';
+              }
+              return 'center';
+            },
             callbacks: {
               title: function(context) {
                 const dataIndex = context[0].dataIndex;
