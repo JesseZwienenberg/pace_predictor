@@ -128,6 +128,7 @@ class RecordsController < ApplicationController
     '5K' => 5.0,
     '10K' => 10.0,
     '15K' => 15.0,
+    '10 mile' => 16.09344,
     'Half Marathon' => 21.0975,
     'Marathon' => 42.195
     }
@@ -145,8 +146,9 @@ class RecordsController < ApplicationController
       '5K' => 7, 
       '10K' => 8, 
       '15K' => 9, 
-      'Half Marathon' => 10, 
-      'Marathon' => 11
+      '10 mile' => 10, 
+      'Half Marathon' => 11, 
+      'Marathon' => 12
     }
     order[distance_name] || 999
   end
